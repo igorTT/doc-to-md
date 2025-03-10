@@ -55,6 +55,69 @@ doc-to-md process --input path/to/input/directory --output path/to/output/direct
 doc-to-md process --input path/to/input/directory --output path/to/output/directory --recursive --mistral
 ```
 
+## Mistral OCR Processing
+
+The tool uses Mistral's dedicated OCR API for processing files:
+
+1. **File Upload Approach**:
+   - Files are uploaded to Mistral's servers
+   - A signed URL is generated for the uploaded file
+   - The file is processed using Mistral's OCR API
+   - The extracted text is returned in markdown format
+
+This approach provides high-quality OCR results for both images and PDFs, with support for multiple languages and complex document layouts.
+
+### OCR Response Handling
+
+The Mistral OCR API can return responses in different formats, which our tool handles automatically:
+
+1. **Simple Text Response**: The most common format with a `text` property containing the extracted text.
+
+   ```json
+   {
+     "text": "Extracted text content from the document"
+   }
+   ```
+
+2. **Content Property**: Some responses may use a `content` property instead of `text`.
+
+   ```json
+   {
+     "content": "Extracted text content from the document"
+   }
+   ```
+
+3. **Multi-page Documents**: For PDFs or multi-page documents, the response may include a `pages` array.
+   ```json
+   {
+     "pages": [
+       { "content": "Text from page 1" },
+       { "content": "Text from page 2" }
+     ]
+   }
+   ```
+
+The tool intelligently extracts the text from any of these formats and combines multi-page content with appropriate spacing.
+
+### File Management
+
+The tool includes functionality to:
+
+- Upload files to Mistral's servers
+- Retrieve file details using the `files.retrieve` API
+- Process files with OCR using the uploaded file's URL
+
+When a file is uploaded, you can retrieve its details which include:
+
+- File ID
+- File size
+- Creation timestamp
+- Filename
+- Purpose (e.g., 'ocr')
+- Sample type
+- Source
+- Deletion status
+
 ## Testing OCR Functionality
 
 To test the OCR functionality without using the CLI:
@@ -64,7 +127,10 @@ To test the OCR functionality without using the CLI:
    ```bash
    node test-ocr.js
    ```
-3. The extracted text will be saved as markdown in `test-files/test-result.md`
+3. The script will:
+   - Demonstrate file upload and retrieval
+   - Process the image with OCR
+   - Save the extracted text as markdown in `test-files/test-result.md`
 
 ## Options
 
@@ -134,9 +200,10 @@ yarn test:coverage
 
 The project maintains high test coverage:
 
-- **Overall**: ~90% statement coverage
-- **index.ts**: 100% statement coverage
-- **processFiles.ts**: ~87% statement coverage
+- **Overall**: ~91% statement coverage
+- **index.ts**: 88% statement coverage
+- **processFiles.ts**: 88% statement coverage
+- **mistralService.ts**: 94% statement coverage
 
 ## License
 

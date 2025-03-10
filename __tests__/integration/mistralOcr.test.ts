@@ -37,12 +37,14 @@ describe('Mistral OCR Integration Tests', () => {
     const mockProcessFile = jest
       .fn()
       .mockResolvedValue(
-        '# Extracted Text\n\nThis is text extracted from the image.',
+        '# Extracted Text\n\nThis is text extracted from the image using OCR.',
       );
     (MistralService.prototype.processFile as jest.Mock) = mockProcessFile;
     (MistralService.prototype.isFileSupported as jest.Mock) = jest
       .fn()
-      .mockReturnValue(true);
+      .mockImplementation((filePath: string) =>
+        ['.jpg', '.jpeg', '.png', '.pdf'].some((ext) => filePath.endsWith(ext)),
+      );
 
     // Mock fs.stat to simulate file/directory checks
     (fs.stat as unknown as jest.Mock).mockImplementation((path) => {
@@ -70,10 +72,10 @@ describe('Mistral OCR Integration Tests', () => {
       (path, options) => {
         if (path === outputFile && options === 'utf-8') {
           return Promise.resolve(
-            '# Extracted Text\n\nThis is text extracted from the image.',
+            '# Extracted Text\n\nThis is text extracted from the image using OCR.',
           );
         } else {
-          return Promise.resolve(Buffer.from('dummy content'));
+          return Promise.resolve(Buffer.from('test file content'));
         }
       },
     );
@@ -105,7 +107,7 @@ describe('Mistral OCR Integration Tests', () => {
     );
     expect(fs.writeFile).toHaveBeenCalledWith(
       outputFile,
-      '# Extracted Text\n\nThis is text extracted from the image.',
+      '# Extracted Text\n\nThis is text extracted from the image using OCR.',
       'utf-8',
     );
   });
@@ -117,11 +119,6 @@ describe('Mistral OCR Integration Tests', () => {
       output: path.join(testDir, 'output'),
       useMistral: true,
     };
-
-    // Mock isFileSupported to return false for the unsupported file
-    (MistralService.prototype.isFileSupported as jest.Mock).mockImplementation(
-      (filePath: string) => !filePath.includes('unsupported'),
-    );
 
     // Act
     await processFiles(options);
