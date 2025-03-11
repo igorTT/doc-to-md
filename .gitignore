@@ -9,6 +9,9 @@ build/
 # Test coverage
 coverage/
 
+# Test data
+test-data/
+
 # Logs
 logs
 *.log

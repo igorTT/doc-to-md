@@ -23,7 +23,7 @@ jest.mock('fs-extra', () => {
 
 describe('Mistral OCR Integration Tests', () => {
   const testDir = '/test/files';
-  const inputFile = path.join(testDir, 'test-input.jpg');
+  const inputFile = path.join(testDir, 'test-input.pdf');
   const outputFile = path.join(testDir, 'test-output.md');
 
   // Store original environment
@@ -37,14 +37,12 @@ describe('Mistral OCR Integration Tests', () => {
     const mockProcessFile = jest
       .fn()
       .mockResolvedValue(
-        '# Extracted Text\n\nThis is text extracted from the image using OCR.',
+        '# Extracted Text\n\nThis is text extracted from the PDF using OCR.',
       );
     (MistralService.prototype.processFile as jest.Mock) = mockProcessFile;
     (MistralService.prototype.isFileSupported as jest.Mock) = jest
       .fn()
-      .mockImplementation((filePath: string) =>
-        ['.jpg', '.jpeg', '.png', '.pdf'].some((ext) => filePath.endsWith(ext)),
-      );
+      .mockImplementation((filePath: string) => filePath.endsWith('.pdf'));
 
     // Mock fs.stat to simulate file/directory checks
     (fs.stat as unknown as jest.Mock).mockImplementation((path) => {
@@ -61,23 +59,9 @@ describe('Mistral OCR Integration Tests', () => {
       }
     });
 
-    // Mock fs.readdir to return test files
-    (fs.readdir as unknown as jest.Mock).mockResolvedValue([
-      'test-input.jpg',
-      'unsupported.xyz',
-    ]);
-
-    // Mock fs.readFile to return test content
-    (fs.readFile as unknown as jest.Mock).mockImplementation(
-      (path, options) => {
-        if (path === outputFile && options === 'utf-8') {
-          return Promise.resolve(
-            '# Extracted Text\n\nThis is text extracted from the image using OCR.',
-          );
-        } else {
-          return Promise.resolve(Buffer.from('test file content'));
-        }
-      },
+    // Mock fs.readFile to return test data
+    (fs.readFile as unknown as jest.Mock).mockResolvedValue(
+      Buffer.from('test-pdf-data'),
     );
   });
 
@@ -87,19 +71,19 @@ describe('Mistral OCR Integration Tests', () => {
   });
 
   beforeEach(() => {
+    // Clear mocks before each test
     jest.clearAllMocks();
   });
 
-  it('should process a file with the Mistral OCR option', async () => {
+  it('should process a PDF file using Mistral OCR', async () => {
     // Arrange
-    const options = {
-      input: inputFile,
-      output: outputFile,
-      useMistral: true,
-    };
+    (fs.pathExists as unknown as jest.Mock).mockResolvedValue(true);
 
     // Act
-    await processFiles(options);
+    await processFiles({
+      input: inputFile,
+      output: outputFile,
+    });
 
     // Assert
     expect(MistralService.prototype.processFile).toHaveBeenCalledWith(
@@ -107,32 +91,53 @@ describe('Mistral OCR Integration Tests', () => {
     );
     expect(fs.writeFile).toHaveBeenCalledWith(
       outputFile,
-      '# Extracted Text\n\nThis is text extracted from the image using OCR.',
+      '# Extracted Text\n\nThis is text extracted from the PDF using OCR.',
       'utf-8',
     );
   });
 
-  it('should skip unsupported files when processing a directory', async () => {
+  it('should throw an error if input file does not exist', async () => {
     // Arrange
-    const options = {
-      input: testDir,
-      output: path.join(testDir, 'output'),
-      useMistral: true,
-    };
+    (fs.pathExists as unknown as jest.Mock).mockResolvedValueOnce(false);
 
-    // Act
-    await processFiles(options);
+    // Act & Assert
+    await expect(
+      processFiles({
+        input: inputFile,
+        output: outputFile,
+      }),
+    ).rejects.toThrow(`Input file does not exist: ${inputFile}`);
+  });
 
-    // Assert
-    // Should only process the supported file
-    expect(MistralService.prototype.processFile).toHaveBeenCalledTimes(1);
-    expect(MistralService.prototype.processFile).toHaveBeenCalledWith(
-      path.join(testDir, 'test-input.jpg'),
+  it('should throw an error if input is not a file', async () => {
+    // Arrange
+    (fs.stat as unknown as jest.Mock).mockResolvedValueOnce({
+      isFile: () => false,
+      isDirectory: () => true,
+    });
+
+    // Act & Assert
+    await expect(
+      processFiles({
+        input: testDir,
+        output: outputFile,
+      }),
+    ).rejects.toThrow(`Input must be a file, not a directory: ${testDir}`);
+  });
+
+  it('should handle errors from MistralService', async () => {
+    // Arrange
+    const mockError = new Error('API error');
+    (MistralService.prototype.processFile as jest.Mock).mockRejectedValueOnce(
+      mockError,
     );
 
-    // Should not process the unsupported file
-    expect(MistralService.prototype.processFile).not.toHaveBeenCalledWith(
-      path.join(testDir, 'unsupported.xyz'),
-    );
+    // Act & Assert
+    await expect(
+      processFiles({
+        input: inputFile,
+        output: outputFile,
+      }),
+    ).rejects.toThrow(`Failed to process PDF ${inputFile}: API error`);
   });
 });

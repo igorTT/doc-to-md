@@ -21,13 +21,14 @@ async function runCommand(
 
 describe('CLI Integration Tests', () => {
   const testDir = path.join(process.cwd(), 'test-files');
-  const inputFile = path.join(testDir, 'test-input.txt');
+  const inputFile = path.join(testDir, 'test-input.pdf');
   const outputFile = path.join(testDir, 'test-output.md');
 
   // Setup test files
   beforeAll(async () => {
     await fs.ensureDir(testDir);
-    await fs.writeFile(inputFile, 'Test content for API conversion');
+    // Create a dummy PDF file for testing
+    await fs.writeFile(inputFile, '%PDF-1.5\nTest PDF content');
   });
 
   // Clean up test files
@@ -50,7 +51,7 @@ describe('CLI Integration Tests', () => {
 
     // Assert
     expect(stdout).toContain('Usage: doc-to-md [options] [command]');
-    expect(stdout).toContain('CLI to process files and send them to an API');
+    expect(stdout).toContain('CLI to process PDF files using Mistral OCR');
     expect(stdout).toContain('process [options]');
   });
 
@@ -62,8 +63,9 @@ describe('CLI Integration Tests', () => {
     expect(stdout).toContain('Usage: doc-to-md process [options]');
     expect(stdout).toContain('-i, --input <path>');
     expect(stdout).toContain('-o, --output <path>');
-    expect(stdout).toContain('-r, --recursive');
-    expect(stdout).toContain('-a, --api <url>');
+    // These options have been removed in the new implementation
+    // expect(stdout).toContain('-r, --recursive');
+    // expect(stdout).toContain('-a, --api <url>');
   });
 
   it('should error when required options are missing', async () => {
@@ -75,18 +77,20 @@ describe('CLI Integration Tests', () => {
     expect(stderr).toContain('--input');
   });
 
-  // This test requires a mock server or can be skipped in CI environments
-  it.skip('should process a file when API is available', async () => {
-    // This test would require setting up a mock API server
+  // This test requires the Mistral API key to be set, so we'll skip it in automated test runs
+  it.skip('should process a PDF file when Mistral API is available', async () => {
+    // This test would require setting up the Mistral API key
     // For now, we'll skip it in automated test runs
 
     // Act
     const { stdout } = await runCommand(
-      `node dist/index.js process --input ${inputFile} --output ${outputFile} --api http://localhost:3000/mock-api`,
+      `node dist/index.js process --input ${inputFile} --output ${outputFile}`,
     );
 
     // Assert
-    expect(stdout).toContain('Processing completed successfully');
+    expect(stdout).toContain(
+      'PDF processing with Mistral OCR completed successfully',
+    );
 
     // Check if output file exists
     const outputExists = await fs.pathExists(outputFile);
