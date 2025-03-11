@@ -57,6 +57,15 @@ describe('MistralService', () => {
       },
     ],
   });
+  const mockChatComplete = jest.fn().mockResolvedValue({
+    choices: [
+      {
+        message: {
+          content: '# Titre Traduit\n\nCeci est un test traduit.',
+        },
+      },
+    ],
+  });
 
   beforeEach(() => {
     // Reset mocks
@@ -86,6 +95,9 @@ describe('MistralService', () => {
           },
           ocr: {
             process: mockOcrProcess,
+          },
+          chat: {
+            complete: mockChatComplete,
           },
         } as any),
     );
@@ -463,6 +475,156 @@ describe('MistralService', () => {
       // Assert
       expect(result).toBe(
         '# Test Document\n\nThis is a test with an image: ![image-1](data:image/jpeg;base64,already-formatted-data)',
+      );
+    });
+  });
+
+  describe('translateContent', () => {
+    beforeEach(() => {
+      // Reset mocks
+      jest.clearAllMocks();
+
+      // Setup environment
+      process.env.MISTRAL_API_KEY = 'test-api-key';
+
+      // Mock successful response
+      mockChatComplete.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: '# Titre Traduit\n\nCeci est un test traduit.',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should translate content to French successfully', async () => {
+      // Arrange
+      const service = new MistralService();
+      const content = '# Test Title\n\nThis is a test.';
+      const language = 'french';
+
+      // Act
+      const result = await service.translateContent(content, language);
+
+      // Assert
+      expect(result).toBe('# Titre Traduit\n\nCeci est un test traduit.');
+      expect(mockChatComplete).toHaveBeenCalledWith({
+        model: 'mistral-large-latest',
+        messages: [
+          {
+            role: 'system',
+            content: expect.stringContaining(
+              'Translate the provided markdown content into French',
+            ),
+          },
+          { role: 'user', content },
+        ],
+      });
+    });
+
+    it('should translate content to German successfully', async () => {
+      // Arrange
+      const service = new MistralService();
+      const content = '# Test Title\n\nThis is a test.';
+      const language = 'german';
+
+      // Mock German translation response
+      mockChatComplete.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: '# Test Titel\n\nDies ist ein Test.',
+            },
+          },
+        ],
+      });
+
+      // Act
+      const result = await service.translateContent(content, language);
+
+      // Assert
+      expect(result).toBe('# Test Titel\n\nDies ist ein Test.');
+      expect(mockChatComplete).toHaveBeenCalledWith({
+        model: 'mistral-large-latest',
+        messages: [
+          {
+            role: 'system',
+            content: expect.stringContaining(
+              'Translate the provided markdown content into German',
+            ),
+          },
+          { role: 'user', content },
+        ],
+      });
+    });
+
+    it('should translate content to Russian successfully', async () => {
+      // Arrange
+      const service = new MistralService();
+      const content = '# Test Title\n\nThis is a test.';
+      const language = 'russian';
+
+      // Mock Russian translation response
+      mockChatComplete.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: '# Тестовый заголовок\n\nЭто тест.',
+            },
+          },
+        ],
+      });
+
+      // Act
+      const result = await service.translateContent(content, language);
+
+      // Assert
+      expect(result).toBe('# Тестовый заголовок\n\nЭто тест.');
+      expect(mockChatComplete).toHaveBeenCalledWith({
+        model: 'mistral-large-latest',
+        messages: [
+          {
+            role: 'system',
+            content: expect.stringContaining(
+              'Translate the provided markdown content into Russian',
+            ),
+          },
+          { role: 'user', content },
+        ],
+      });
+    });
+
+    it('should handle API errors gracefully', async () => {
+      // Arrange
+      const service = new MistralService();
+      const content = '# Test Title\n\nThis is a test.';
+      const language = 'spanish';
+
+      // Mock API error
+      mockChatComplete.mockRejectedValue(new Error('API request failed'));
+
+      // Act & Assert
+      await expect(service.translateContent(content, language)).rejects.toThrow(
+        'Failed to translate content: API request failed',
+      );
+    });
+
+    it('should throw an error if response is invalid', async () => {
+      // Arrange
+      const service = new MistralService();
+      const content = '# Test Title\n\nThis is a test.';
+      const language = 'french';
+
+      // Mock invalid response
+      mockChatComplete.mockResolvedValue({
+        choices: [],
+      });
+
+      // Act & Assert
+      await expect(service.translateContent(content, language)).rejects.toThrow(
+        'Invalid response from Mistral API',
       );
     });
   });

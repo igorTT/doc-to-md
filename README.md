@@ -37,6 +37,18 @@ You need to set up your Mistral API key:
 doc-to-md process --input path/to/input/file.pdf --output path/to/output/file.md
 ```
 
+### Translate a markdown file to another language
+
+```bash
+doc-to-md translate --input path/to/input/file.md --output path/to/output/translated.md --language french
+```
+
+Supported languages:
+- french
+- german
+- spanish
+- russian
+
 ### Test Data
 
 The project includes a `test-data` folder for storing PDF files used for testing. This folder is excluded from version control via `.gitignore`. You can place your test PDF files in this folder and use them for testing the application.
@@ -99,6 +111,26 @@ The tool includes functionality to:
 - Upload PDF files to Mistral's servers
 - Retrieve file details using the `files.retrieve` API
 - Process files with OCR using the uploaded file's URL
+
+## Mistral Translation
+
+The tool uses Mistral's AI capabilities for translating markdown content:
+
+1. **Translation Workflow**:
+   - Markdown files are read from the specified input path
+   - The content is sent to Mistral's AI for translation
+   - The translated content is saved to the specified output path
+
+This approach provides high-quality translations while preserving markdown formatting, including headers, lists, code blocks, and image references.
+
+### Translation Options
+
+The translation command supports the following options:
+
+- `-i, --input <path>`: Path to input markdown file (required)
+- `-o, --output <path>`: Path to output translated markdown file (required)
+- `-l, --language <language>`: Target language for translation (required)
+  - Supported languages: french, german, spanish
 
 ## Options
 

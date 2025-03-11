@@ -14,6 +14,7 @@ dotenv.config();
 export class MistralService {
   private client: Mistral;
   private readonly OCR_MODEL = 'mistral-ocr-latest';
+  private readonly CHAT_MODEL = 'mistral-large-latest';
 
   /**
    * Create a new MistralService instance
@@ -215,6 +216,65 @@ export class MistralService {
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to upload PDF file: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Translate markdown content to the specified language using Mistral AI
+   * @param content Markdown content to translate
+   * @param language Target language for translation (french, german, spanish, russian)
+   * @returns Translated markdown content
+   * @throws Error if translation fails
+   */
+  public async translateContent(
+    content: string,
+    language: string,
+  ): Promise<string> {
+    try {
+      // Normalize language name
+      const normalizedLanguage = language.toLowerCase();
+
+      // Map of language codes to full names
+      const languageMap: Record<string, string> = {
+        french: 'French',
+        german: 'German',
+        spanish: 'Spanish',
+        russian: 'Russian',
+      };
+
+      const targetLanguage =
+        languageMap[normalizedLanguage] || normalizedLanguage;
+
+      // Create a system prompt for translation
+      const systemPrompt = `You are a professional translator. Translate the provided markdown content into ${targetLanguage}. 
+      Preserve all markdown formatting, including headers, lists, code blocks, and image references. 
+      Do not translate code blocks or URLs. Keep image references intact.`;
+
+      // Send the translation request to Mistral AI
+      const response = await this.client.chat.complete({
+        model: this.CHAT_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content },
+        ],
+      });
+
+      // Extract the translated content from the response
+      if (!response || !response.choices || response.choices.length === 0) {
+        throw new Error('Invalid response from Mistral API');
+      }
+
+      const translatedContent = response.choices[0].message.content as string;
+      if (!translatedContent) {
+        throw new Error('Empty translation response from Mistral API');
+      }
+
+      return translatedContent;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to translate content: ${error.message}`);
       }
       throw error;
     }

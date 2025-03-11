@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { processFiles } from '../../src/processFiles';
+import { translateFiles } from '../../src/translateFiles';
 
 // Mock dependencies
 jest.mock('commander', () => {
@@ -20,12 +21,14 @@ jest.mock('commander', () => {
 });
 
 jest.mock('../../src/processFiles');
+jest.mock('../../src/translateFiles');
 jest.mock('dotenv', () => ({
   config: jest.fn(),
 }));
 
-// Store the action callback
-let actionCallback: (options: any) => Promise<void>;
+// Store the action callbacks
+let processActionCallback: (options: any) => Promise<void>;
+let translateActionCallback: (options: any) => Promise<void>;
 
 describe('CLI', () => {
   // Mock console methods
@@ -37,13 +40,23 @@ describe('CLI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Reset action callback
-    actionCallback = undefined as any;
+    // Reset action callbacks
+    processActionCallback = undefined as any;
+    translateActionCallback = undefined as any;
 
-    // Mock the action method to capture the callback
+    // Mock the action method to capture the callbacks
     const commandInstance = new Command();
+    let commandCount = 0;
+    (commandInstance.command as jest.Mock).mockImplementation(() => {
+      commandCount++;
+      return commandInstance;
+    });
     (commandInstance.action as jest.Mock).mockImplementation((callback) => {
-      actionCallback = callback;
+      if (commandCount === 1) {
+        processActionCallback = callback;
+      } else if (commandCount === 2) {
+        translateActionCallback = callback;
+      }
       return commandInstance;
     });
 
@@ -65,61 +78,127 @@ describe('CLI', () => {
     expect(commandInstance.version).toHaveBeenCalledWith('1.0.0');
   });
 
-  it('should call processFiles when action is triggered', async () => {
-    // Arrange
-    process.env.MISTRAL_API_KEY = 'test-api-key';
-    const options = {
-      input: '/test/input.pdf',
-      output: '/test/output.md',
-    };
+  describe('process command', () => {
+    it('should call processFiles when action is triggered', async () => {
+      // Arrange
+      process.env.MISTRAL_API_KEY = 'test-api-key';
+      const options = {
+        input: '/test/input.pdf',
+        output: '/test/output.md',
+      };
 
-    // Act
-    await actionCallback(options);
+      // Act
+      await processActionCallback(options);
 
-    // Assert
-    expect(processFiles).toHaveBeenCalledWith({
-      input: options.input,
-      output: options.output,
+      // Assert
+      expect(processFiles).toHaveBeenCalledWith({
+        input: options.input,
+        output: options.output,
+      });
+    });
+
+    it('should handle errors in the action callback', async () => {
+      // Arrange
+      process.env.MISTRAL_API_KEY = 'test-api-key';
+      const options = {
+        input: '/test/input.pdf',
+        output: '/test/output.md',
+      };
+      const testError = new Error('Test error');
+      (processFiles as jest.Mock).mockRejectedValueOnce(testError);
+
+      // Act
+      await processActionCallback(options);
+
+      // Assert
+      expect(mockProcessExit).toHaveBeenCalledWith(1);
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error processing PDF:',
+        'Test error',
+      );
+    });
+
+    it('should throw an error if MISTRAL_API_KEY is not set', async () => {
+      // Arrange
+      delete process.env.MISTRAL_API_KEY;
+      const options = {
+        input: '/test/input.pdf',
+        output: '/test/output.md',
+      };
+
+      // Act
+      await processActionCallback(options);
+
+      // Assert
+      expect(mockProcessExit).toHaveBeenCalledWith(1);
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error processing PDF:',
+        'MISTRAL_API_KEY is not set in environment variables. Create a .env file with your API key.',
+      );
     });
   });
 
-  it('should handle errors in the action callback', async () => {
-    // Arrange
-    process.env.MISTRAL_API_KEY = 'test-api-key';
-    const options = {
-      input: '/test/input.pdf',
-      output: '/test/output.md',
-    };
-    const testError = new Error('Test error');
-    (processFiles as jest.Mock).mockRejectedValueOnce(testError);
+  describe('translate command', () => {
+    it('should call translateFiles when action is triggered', async () => {
+      // Arrange
+      process.env.MISTRAL_API_KEY = 'test-api-key';
+      const options = {
+        input: '/test/input.md',
+        output: '/test/output.md',
+        language: 'french',
+      };
 
-    // Act
-    await actionCallback(options);
+      // Act
+      await translateActionCallback(options);
 
-    // Assert
-    expect(mockProcessExit).toHaveBeenCalledWith(1);
-    expect(mockConsoleError).toHaveBeenCalledWith(
-      'Error processing PDF:',
-      'Test error',
-    );
-  });
+      // Assert
+      expect(translateFiles).toHaveBeenCalledWith({
+        input: options.input,
+        output: options.output,
+        language: options.language,
+      });
+    });
 
-  it('should throw an error if MISTRAL_API_KEY is not set', async () => {
-    // Arrange
-    delete process.env.MISTRAL_API_KEY;
-    const options = {
-      input: '/test/input.pdf',
-      output: '/test/output.md',
-    };
+    it('should handle errors in the action callback', async () => {
+      // Arrange
+      process.env.MISTRAL_API_KEY = 'test-api-key';
+      const options = {
+        input: '/test/input.md',
+        output: '/test/output.md',
+        language: 'french',
+      };
+      const testError = new Error('Test error');
+      (translateFiles as jest.Mock).mockRejectedValueOnce(testError);
 
-    // Act
-    await actionCallback(options);
+      // Act
+      await translateActionCallback(options);
 
-    // Assert
-    expect(mockProcessExit).toHaveBeenCalledWith(1);
-    expect(mockConsoleError).toHaveBeenCalledWith(
-      'Error processing PDF:',
-      'MISTRAL_API_KEY is not set in environment variables. Create a .env file with your API key.',
-    );
+      // Assert
+      expect(mockProcessExit).toHaveBeenCalledWith(1);
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error translating file:',
+        'Test error',
+      );
+    });
+
+    it('should throw an error if MISTRAL_API_KEY is not set', async () => {
+      // Arrange
+      delete process.env.MISTRAL_API_KEY;
+      const options = {
+        input: '/test/input.md',
+        output: '/test/output.md',
+        language: 'french',
+      };
+
+      // Act
+      await translateActionCallback(options);
+
+      // Assert
+      expect(mockProcessExit).toHaveBeenCalledWith(1);
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        'Error translating file:',
+        'MISTRAL_API_KEY is not set in environment variables. Create a .env file with your API key.',
+      );
+    });
   });
 });
