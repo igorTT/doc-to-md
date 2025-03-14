@@ -10,12 +10,29 @@ export const mockFs = {
   writeFile: jest.fn(),
   readdir: jest.fn(),
   remove: jest.fn(),
+  copy: jest.fn(),
+  writeFileSync: jest.fn(),
 };
 
 // Mock axios
 export const mockAxios = {
   post: jest.fn(),
   isAxiosError: jest.fn(),
+};
+
+// Mock Mistral SDK
+export const mockMistral = {
+  files: {
+    upload: jest.fn(),
+    getSignedUrl: jest.fn(),
+    retrieve: jest.fn(),
+  },
+  ocr: {
+    process: jest.fn(),
+  },
+  chat: {
+    complete: jest.fn(),
+  },
 };
 
 // Mock file stats
@@ -32,6 +49,11 @@ export const setupMocks = () => {
   // Setup axios mocks
   jest.mock('axios', () => mockAxios);
 
+  // Setup Mistral SDK mock
+  jest.mock('@mistralai/mistralai', () => ({
+    Mistral: jest.fn().mockImplementation(() => mockMistral),
+  }));
+
   // Setup path mocks
   jest.mock('path', () => ({
     ...jest.requireActual('path'),
@@ -42,5 +64,13 @@ export const setupMocks = () => {
       return ext ? base.replace(ext, '') : base;
     }),
     extname: jest.fn().mockReturnValue('.txt'),
+  }));
+
+  // Setup crypto mock
+  jest.mock('crypto', () => ({
+    createHash: jest.fn().mockReturnValue({
+      update: jest.fn().mockReturnThis(),
+      digest: jest.fn().mockReturnValue('abc123'),
+    }),
   }));
 };

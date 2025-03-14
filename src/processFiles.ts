@@ -32,9 +32,17 @@ export async function processFiles(options: ProcessOptions): Promise<void> {
   try {
     console.log(`Processing PDF file: ${input}`);
 
+    // Create images folder based on input file name (without extension)
+    const inputFileName = path.basename(input, path.extname(input));
+    const outputDir = path.dirname(output);
+    const imagesDir = path.join(outputDir, `${inputFileName}-images`);
+
+    // Ensure images directory exists
+    await fs.ensureDir(imagesDir);
+
     // Use Mistral OCR API to process the PDF
     const mistralService = new MistralService();
-    const response = await mistralService.processFile(input);
+    const response = await mistralService.processFile(input, imagesDir);
 
     // Ensure output directory exists
     await fs.ensureDir(path.dirname(output));
@@ -43,11 +51,12 @@ export async function processFiles(options: ProcessOptions): Promise<void> {
     await fs.writeFile(output, response, 'utf-8');
 
     console.log(`PDF processed successfully: ${output}`);
+    console.log(`Images saved to: ${imagesDir}`);
   } catch (error) {
     throw new Error(
       `Failed to process PDF ${input}: ${
         error instanceof Error ? error.message : String(error)
-      }`,
+      }`
     );
   }
 }
