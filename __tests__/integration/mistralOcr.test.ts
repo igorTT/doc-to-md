@@ -18,6 +18,19 @@ jest.mock('fs-extra', () => {
     stat: jest.fn(),
     readdir: jest.fn(),
     remove: jest.fn().mockResolvedValue(undefined),
+    copy: jest.fn().mockResolvedValue(undefined),
+  };
+});
+
+// Mock path to control directory and file paths
+jest.mock('path', () => {
+  const originalPath = jest.requireActual('path');
+  return {
+    ...originalPath,
+    basename: jest.fn(),
+    dirname: jest.fn(),
+    join: jest.fn(),
+    extname: jest.fn(),
   };
 });
 
@@ -25,6 +38,7 @@ describe('Mistral OCR Integration Tests', () => {
   const testDir = '/test/files';
   const inputFile = path.join(testDir, 'test-input.pdf');
   const outputFile = path.join(testDir, 'test-output.md');
+  const imagesDir = path.join(testDir, 'test-input-images');
 
   // Store original environment
   const originalEnv = process.env;
@@ -37,7 +51,7 @@ describe('Mistral OCR Integration Tests', () => {
     const mockProcessFile = jest
       .fn()
       .mockResolvedValue(
-        '# Extracted Text\n\nThis is text extracted from the PDF using OCR.',
+        '# Extracted Text\n\nThis is text extracted from the PDF using OCR.'
       );
     (MistralService.prototype.processFile as jest.Mock) = mockProcessFile;
     (MistralService.prototype.isFileSupported as jest.Mock) = jest
@@ -61,7 +75,7 @@ describe('Mistral OCR Integration Tests', () => {
 
     // Mock fs.readFile to return test data
     (fs.readFile as unknown as jest.Mock).mockResolvedValue(
-      Buffer.from('test-pdf-data'),
+      Buffer.from('test-pdf-data')
     );
   });
 
@@ -73,6 +87,20 @@ describe('Mistral OCR Integration Tests', () => {
   beforeEach(() => {
     // Clear mocks before each test
     jest.clearAllMocks();
+
+    // Set up path mocks for each test
+    (path.basename as jest.Mock).mockImplementation((filePath, ext) => {
+      if (ext) return 'test-input';
+      return 'test-output.md';
+    });
+    (path.dirname as jest.Mock).mockReturnValue(testDir);
+    (path.join as jest.Mock).mockImplementation((...args) => {
+      if (args.includes('test-input-images')) {
+        return imagesDir;
+      }
+      return args.join('/');
+    });
+    (path.extname as jest.Mock).mockReturnValue('.pdf');
   });
 
   it('should process a PDF file using Mistral OCR', async () => {
@@ -86,13 +114,19 @@ describe('Mistral OCR Integration Tests', () => {
     });
 
     // Assert
+    // Check that the images directory is created
+    expect(fs.ensureDir).toHaveBeenCalledWith(imagesDir);
+
+    // Check that the MistralService is called with the correct parameters
     expect(MistralService.prototype.processFile).toHaveBeenCalledWith(
       inputFile,
+      imagesDir
     );
+
     expect(fs.writeFile).toHaveBeenCalledWith(
       outputFile,
       '# Extracted Text\n\nThis is text extracted from the PDF using OCR.',
-      'utf-8',
+      'utf-8'
     );
   });
 
@@ -105,7 +139,7 @@ describe('Mistral OCR Integration Tests', () => {
       processFiles({
         input: inputFile,
         output: outputFile,
-      }),
+      })
     ).rejects.toThrow(`Input file does not exist: ${inputFile}`);
   });
 
@@ -121,7 +155,7 @@ describe('Mistral OCR Integration Tests', () => {
       processFiles({
         input: testDir,
         output: outputFile,
-      }),
+      })
     ).rejects.toThrow(`Input must be a file, not a directory: ${testDir}`);
   });
 
@@ -129,7 +163,7 @@ describe('Mistral OCR Integration Tests', () => {
     // Arrange
     const mockError = new Error('API error');
     (MistralService.prototype.processFile as jest.Mock).mockRejectedValueOnce(
-      mockError,
+      mockError
     );
 
     // Act & Assert
@@ -137,7 +171,7 @@ describe('Mistral OCR Integration Tests', () => {
       processFiles({
         input: inputFile,
         output: outputFile,
-      }),
+      })
     ).rejects.toThrow(`Failed to process PDF ${inputFile}: API error`);
   });
 });

@@ -2,6 +2,7 @@ import { Mistral } from '@mistralai/mistralai';
 import fs from 'fs-extra';
 import path from 'path';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -26,7 +27,7 @@ export class MistralService {
 
     if (!apiKey) {
       throw new Error(
-        'MISTRAL_API_KEY environment variable is not set. Please set it to use the Mistral OCR service.',
+        'MISTRAL_API_KEY environment variable is not set. Please set it to use the Mistral OCR service.'
       );
     }
 
@@ -48,16 +49,20 @@ export class MistralService {
   /**
    * Process a PDF file with Mistral's OCR API
    * Extracts text and images from PDF documents using Mistral's advanced OCR capabilities
-   * The extracted content is returned as markdown with embedded base64 images
+   * The extracted content is returned as markdown with links to saved images
    *
    * @param filePath Path to the PDF file to process
-   * @returns Markdown string with extracted text and embedded images
+   * @param imagesDir Directory to save extracted images
+   * @returns Markdown string with extracted text and links to images
    * @throws Error if the file is not a PDF or if processing fails
    */
-  public async processFile(filePath: string): Promise<string> {
+  public async processFile(
+    filePath: string,
+    imagesDir: string
+  ): Promise<string> {
     if (!this.isFileSupported(filePath)) {
       throw new Error(
-        `Only PDF files are supported. Received: ${path.extname(filePath)}`,
+        `Only PDF files are supported. Received: ${path.extname(filePath)}`
       );
     }
 
@@ -115,21 +120,22 @@ export class MistralService {
           });
         }
 
-        // Replace image references with base64 data
-        return this.replaceImagesInMarkdown(page.markdown, imageData);
+        // Replace image references with links to saved image files
+        return this.replaceImagesInMarkdown(
+          page.markdown,
+          imageData,
+          imagesDir
+        );
       });
 
       // Combine all pages into a single markdown document
       const processedMarkdown = processedMarkdowns.filter(Boolean).join('\n\n');
 
-      // Remove the automatic saving to the original file location
-      // this.saveMarkdownToFile(processedMarkdown, filePath);
-
       return processedMarkdown;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
-          `Failed to process PDF with Mistral OCR API: ${error.message}`,
+          `Failed to process PDF with Mistral OCR API: ${error.message}`
         );
       }
       throw error;
@@ -137,31 +143,52 @@ export class MistralService {
   }
 
   /**
-   * Replace image references in markdown with base64 data
+   * Replace image references in markdown with links to saved image files
    * @param markdown Markdown content with image references
    * @param imageData Dictionary of image IDs to base64 data
-   * @returns Markdown with embedded base64 images
+   * @param imagesDir Directory to save images
+   * @returns Markdown with links to saved images
    */
   private replaceImagesInMarkdown(
     markdown: string,
     imageData: Record<string, string>,
+    imagesDir: string
   ): string {
     let result = markdown;
 
     for (const [imgId, base64Data] of Object.entries(imageData)) {
-      // Format the base64 data for markdown
-      const formattedBase64 = base64Data.startsWith('data:')
-        ? base64Data
-        : `data:image/png;base64,${base64Data}`;
+      try {
+        // Generate a unique filename for the image
+        const hash = crypto.createHash('md5').update(imgId).digest('hex');
+        const imageFileName = `image-${hash}.png`;
+        const imagePath = path.join(imagesDir, imageFileName);
 
-      // Replace image references with base64 data
-      // Escape special characters in the pattern
-      const escapedImgId = imgId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const pattern = `!\\[${escapedImgId}\\]\\(${escapedImgId}\\)`;
-      result = result.replace(
-        new RegExp(pattern, 'g'),
-        `![${imgId}](${formattedBase64})`,
-      );
+        // Extract the base64 data (remove data:image/png;base64, prefix if present)
+        let imageBuffer;
+        if (base64Data.startsWith('data:')) {
+          const base64Content = base64Data.split(',')[1];
+          imageBuffer = Buffer.from(base64Content, 'base64');
+        } else {
+          imageBuffer = Buffer.from(base64Data, 'base64');
+        }
+
+        // Save the image to a file
+        fs.writeFileSync(imagePath, imageBuffer);
+
+        // Get the relative path from the markdown file to the image
+        const relativeImagePath =
+          path.basename(imagesDir) + '/' + imageFileName;
+
+        // Replace image references with links to the saved image file
+        const escapedImgId = imgId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = `!\\[${escapedImgId}\\]\\(${escapedImgId}\\)`;
+        result = result.replace(
+          new RegExp(pattern, 'g'),
+          `![${imgId}](${relativeImagePath})`
+        );
+      } catch (error) {
+        console.error(`Failed to save image ${imgId}:`, error);
+      }
     }
 
     return result;
@@ -181,7 +208,7 @@ export class MistralService {
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
-          `Failed to retrieve PDF file details: ${error.message}`,
+          `Failed to retrieve PDF file details: ${error.message}`
         );
       }
       throw error;
@@ -196,7 +223,7 @@ export class MistralService {
   public async uploadFile(filePath: string): Promise<any> {
     if (!this.isFileSupported(filePath)) {
       throw new Error(
-        `Only PDF files are supported. Received: ${path.extname(filePath)}`,
+        `Only PDF files are supported. Received: ${path.extname(filePath)}`
       );
     }
 
@@ -230,7 +257,7 @@ export class MistralService {
    */
   public async translateContent(
     content: string,
-    language: string,
+    language: string
   ): Promise<string> {
     try {
       // Normalize language name

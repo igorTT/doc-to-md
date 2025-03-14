@@ -21,7 +21,12 @@ jest.mock('fs-extra', () => ({
 jest.mock('path', () => ({
   extname: jest.fn().mockReturnValue('.pdf'),
   dirname: jest.fn().mockReturnValue('/test'),
-  basename: jest.fn().mockReturnValue('output.md'),
+  basename: jest.fn().mockImplementation((filePath, ext) => {
+    if (ext) {
+      return 'input';
+    }
+    return 'output.md';
+  }),
   join: jest.fn().mockImplementation((...args) => args.join('/')),
   resolve: jest.fn().mockImplementation((...args) => args.join('/')),
 }));
@@ -38,10 +43,10 @@ describe('processFiles', () => {
 
     // Mock MistralService
     (MistralService.prototype.processFile as jest.Mock).mockResolvedValue(
-      'Processed content',
+      'Processed content'
     );
     (MistralService.prototype.isFileSupported as jest.Mock).mockReturnValue(
-      true,
+      true
     );
   });
 
@@ -58,14 +63,27 @@ describe('processFiles', () => {
     // Assert
     expect(fs.pathExists).toHaveBeenCalledWith(options.input);
     expect(fs.stat).toHaveBeenCalledWith(options.input);
+
+    // Check that the images directory is created
+    expect(path.basename).toHaveBeenCalledWith(
+      options.input,
+      path.extname(options.input)
+    );
+    expect(path.dirname).toHaveBeenCalledWith(options.output);
+    expect(path.join).toHaveBeenCalledWith('/test', 'input-images');
+    expect(fs.ensureDir).toHaveBeenCalledWith('/test/input-images');
+
+    // Check that the MistralService is called with the correct parameters
     expect(MistralService.prototype.processFile).toHaveBeenCalledWith(
       options.input,
+      '/test/input-images'
     );
+
     expect(fs.ensureDir).toHaveBeenCalledWith('/test');
     expect(fs.writeFile).toHaveBeenCalledWith(
       options.output,
       'Processed content',
-      'utf-8',
+      'utf-8'
     );
   });
 
@@ -80,7 +98,7 @@ describe('processFiles', () => {
 
     // Act & Assert
     await expect(processFiles(options)).rejects.toThrow(
-      `Input file does not exist: ${options.input}`,
+      `Input file does not exist: ${options.input}`
     );
     expect(fs.readFile).not.toHaveBeenCalled();
   });
@@ -101,7 +119,7 @@ describe('processFiles', () => {
 
     // Act & Assert
     await expect(processFiles(options)).rejects.toThrow(
-      `Input must be a file, not a directory: ${options.input}`,
+      `Input must be a file, not a directory: ${options.input}`
     );
   });
 
@@ -114,12 +132,12 @@ describe('processFiles', () => {
 
     const mockError = new Error('API error');
     (MistralService.prototype.processFile as jest.Mock).mockRejectedValueOnce(
-      mockError,
+      mockError
     );
 
     // Act & Assert
     await expect(processFiles(options)).rejects.toThrow(
-      `Failed to process PDF ${options.input}: API error`,
+      `Failed to process PDF ${options.input}: API error`
     );
   });
 });
