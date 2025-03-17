@@ -22,7 +22,12 @@ jest.mock('fs-extra', () => ({
 jest.mock('path', () => ({
   extname: jest.fn().mockReturnValue('.pdf'),
   dirname: jest.fn().mockReturnValue('/test'),
-  basename: jest.fn().mockReturnValue('output.md'),
+  basename: jest.fn().mockImplementation((filePath, ext) => {
+    if (ext) {
+      return 'input';
+    }
+    return 'output.md';
+  }),
   join: jest.fn().mockImplementation((...args) => args.join('/')),
   resolve: jest.fn().mockImplementation((...args) => args.join('/')),
 }));
@@ -47,6 +52,7 @@ describe('processFiles', () => {
     // Mock MistralService
     (MistralService as jest.Mock).mockImplementation(() => ({
       processFile: mockProcessFile,
+      isFileSupported: jest.fn().mockReturnValue(true),
     }));
 
     // Mock TokenCountService
@@ -77,7 +83,22 @@ describe('processFiles', () => {
     // Assert
     expect(fs.pathExists).toHaveBeenCalledWith(options.input);
     expect(fs.stat).toHaveBeenCalledWith(options.input);
-    expect(mockProcessFile).toHaveBeenCalledWith(options.input);
+
+    // Check that the images directory is created
+    expect(path.basename).toHaveBeenCalledWith(
+      options.input,
+      path.extname(options.input),
+    );
+    expect(path.dirname).toHaveBeenCalledWith(options.output);
+    expect(path.join).toHaveBeenCalledWith('/test', 'input-images');
+    expect(fs.ensureDir).toHaveBeenCalledWith('/test/input-images');
+
+    // Check that MistralService.processFile is called
+    expect(mockProcessFile).toHaveBeenCalledWith(
+      options.input,
+      '/test/input-images',
+    );
+
     expect(fs.ensureDir).toHaveBeenCalledWith('/test');
     expect(fs.writeFile).toHaveBeenCalledWith(
       options.output,

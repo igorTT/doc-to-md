@@ -39,13 +39,27 @@ doc-to-md process --input path/to/input/file.pdf --output path/to/output/file.md
 
 The tool will automatically count tokens in the OCR result and provide an estimated cost based on Mistral's pricing.
 
+When processing a PDF file, the tool will:
+
+1. Extract text and images from the PDF using Mistral's OCR capabilities
+2. Create a folder named `{input-filename}-images` in the same directory as the output file
+3. Save all extracted images to this folder as PNG files
+4. Generate a markdown file with links to the saved images instead of embedding them as base64
+
 ### Translate a markdown file to another language
 
 ```bash
 doc-to-md translate --input path/to/input/file.md --output path/to/output/translated.md --language french
 ```
 
+When translating a markdown file, the tool will:
+
+1. Translate the markdown content to the specified language
+2. Copy the associated images folder to the output location if it exists
+3. Update image links in the translated content if the output filename is different from the input filename
+
 Supported languages:
+
 - french
 - german
 - spanish
@@ -113,6 +127,7 @@ The Mistral OCR API returns responses with the following structure for PDF docum
 ```
 
 The tool processes this response by:
+
 1. Extracting the markdown content from each page
 2. Replacing image references with embedded base64 images
 3. Combining all pages into a single markdown document
