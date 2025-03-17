@@ -1,3 +1,29 @@
+/**
+ * Test Suite: processFiles.test.ts
+ * ================================
+ *
+ * Purpose:
+ * This test suite validates the core PDF processing functionality that converts
+ * PDF documents to markdown using the Mistral OCR service.
+ *
+ * Key Components Tested:
+ * - processFiles function
+ * - MistralService integration for OCR processing
+ * - File system operations for reading PDFs and writing markdown
+ * - TokenCountService for estimating processing costs
+ *
+ * Test Groups:
+ * 1. Basic processing - Tests for successful PDF to markdown conversion
+ * 2. Error handling - Tests for input validation and API error scenarios
+ * 3. Options handling - Tests for directory output, recursive processing, and other options
+ * 4. File types validation - Tests for supported and unsupported file types
+ *
+ * Environment Setup:
+ * - MistralService is mocked to simulate API responses without actual API calls
+ * - File system operations are mocked to test without actual file I/O
+ * - Various PDF input scenarios are simulated with mock data
+ */
+
 import { processFiles } from '../../src/processFiles';
 import { MistralService } from '../../src/services/mistralService';
 import { TokenCountService } from '../../src/services/tokenCountService';

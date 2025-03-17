@@ -1,3 +1,29 @@
+/**
+ * Test Suite: translateFiles.test.ts
+ * ===================================
+ *
+ * Purpose:
+ * This test suite validates the file translation functionality of the application,
+ * including language detection, file handling, cost estimation, and translation processes.
+ *
+ * Key Components Tested:
+ * - translateFiles function
+ * - MistralService integration
+ * - TokenCountService integration
+ * - File system operations
+ *
+ * Test Groups:
+ * 1. Input validation - Tests for various input parameters and their validation
+ * 2. File handling - Tests for file existence, reading, and writing operations
+ * 3. Translation process - Tests for the core translation functionality
+ * 4. Error handling - Tests for various error scenarios
+ * 5. Cost estimation - Tests for token counting and cost estimation
+ *
+ * Environment Setup:
+ * - All external dependencies (fs, path, MistralService, TokenCountService) are mocked
+ * - Test data is created in-memory to simulate file operations
+ */
+
 import { translateFiles, SUPPORTED_LANGUAGES } from '../../src/translateFiles';
 import { MistralService } from '../../src/services/mistralService';
 import fs from 'fs-extra';

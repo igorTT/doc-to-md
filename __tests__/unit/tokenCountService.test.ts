@@ -1,3 +1,27 @@
+/**
+ * Test Suite: tokenCountService.test.ts
+ * =====================================
+ *
+ * Purpose:
+ * This test suite validates the token counting service used to estimate the cost
+ * of API requests to the Mistral AI service based on input text length.
+ *
+ * Key Components Tested:
+ * - TokenCountService initialization
+ * - Token counting functionality using tiktoken library
+ * - Cost estimation based on token count and model rates
+ * - Different text types and formats handling
+ *
+ * Test Groups:
+ * 1. Token counting - Tests for accurately counting tokens in different text formats
+ * 2. Cost estimation - Tests for calculating processing costs based on token counts
+ * 3. Edge cases - Tests for empty strings, special characters, and other edge cases
+ *
+ * Environment Setup:
+ * - The tiktoken library is mocked to provide consistent token counts for testing
+ * - Various text inputs are used to test different counting scenarios
+ */
+
 import { TokenCountService } from '../../src/services/tokenCountService';
 import * as tiktoken from 'tiktoken';
 

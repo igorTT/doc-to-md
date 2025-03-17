@@ -15,7 +15,8 @@
     "prepare": "yarn build",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:docs": "node __tests__/scripts/check-test-docs.js"
   },
   "dependencies": {
     "@langchain/community": "^0.3.35",
