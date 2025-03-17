@@ -37,6 +37,8 @@ You need to set up your Mistral API key:
 doc-to-md process --input path/to/input/file.pdf --output path/to/output/file.md
 ```
 
+The tool will automatically count tokens in the OCR result and provide an estimated cost based on Mistral's pricing.
+
 ### Translate a markdown file to another language
 
 ```bash
@@ -48,6 +50,17 @@ Supported languages:
 - german
 - spanish
 - russian
+
+When translating, the tool provides token counts for both the input and translated content, along with cost estimates.
+
+### Token Counting
+
+The tool now includes token counting functionality that:
+- Counts tokens in files being processed or translated
+- Provides an estimated cost based on current Mistral pricing
+- Gives visibility into the token usage of your operations
+
+This helps you understand and manage costs when using Mistral's API for OCR and translation.
 
 ### Test Data
 
