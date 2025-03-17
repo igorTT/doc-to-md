@@ -1,3 +1,12 @@
+// Mock tiktoken before it gets imported anywhere else
+jest.mock('tiktoken', () => ({
+  get_encoding: jest.fn().mockReturnValue({
+    encode: jest.fn().mockReturnValue([1, 2, 3, 4, 5]),
+    free: jest.fn(),
+  }),
+  TiktokenEncoding: {},
+}));
+
 // Mock ReadableStream for Mistral SDK before any imports
 // @ts-ignore - We're intentionally creating a minimal mock
 global.ReadableStream = class MockReadableStream {
