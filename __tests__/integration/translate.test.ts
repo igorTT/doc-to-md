@@ -1,3 +1,41 @@
+/**
+ * Integration Test Suite: Translation
+ * ==================================
+ *
+ * Purpose:
+ * These tests validate the end-to-end functionality of the document translation
+ * feature, ensuring that markdown files are correctly translated to different languages.
+ *
+ * Key Components Tested:
+ * - CLI translate command functionality
+ * - MistralService integration for language translation
+ * - File system operations for input/output handling
+ * - Image reference preservation during translation
+ *
+ * Test Groups:
+ * 1. Command execution - Tests for proper CLI command handling
+ * 2. Translation options - Tests for language selection and other parameters
+ * 3. Error handling - Tests for invalid inputs and API errors
+ * 4. File operations - Tests for reading, writing, and image handling
+ *
+ * Testing Approach:
+ * - Tests simulate CLI commands for translation through mocked executions
+ * - File system interactions verify correct input/output handling
+ * - Full translation process is tested from command invocation to file output
+ *
+ * Key Scenarios Tested:
+ * 1. Basic translation - Testing translation of markdown files to supported languages
+ * 2. Command options - Testing behavior with different CLI parameters
+ * 3. Error handling - Testing errors for invalid inputs or unsupported languages
+ * 4. Image handling - Testing preservation of image references in translated content
+ * 5. Cost estimation - Testing token counting and cost estimation during translation
+ *
+ * Setup/Teardown:
+ * - Test files are created and cleaned up for each test
+ * - Command execution is mocked to verify parameters and outputs
+ * - Translation service responses are simulated
+ */
+
 import { exec } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
@@ -12,7 +50,7 @@ jest.mock('child_process', () => ({
 
 // Helper to run CLI commands
 async function runCommand(
-  command: string
+  command: string,
 ): Promise<{ stdout: string; stderr: string }> {
   try {
     return await execAsync(command);
@@ -94,14 +132,14 @@ Copied images to: ${outputImagesDir}`;
     await fs.writeFile(
       inputFile,
       '# Test Document\n\nThis is a test document for translation.\n\n![Test Image](test-input-images/image-123.png)',
-      'utf-8'
+      'utf-8',
     );
 
     // Create a test images directory and a sample image
     await fs.ensureDir(imagesDir);
     await fs.writeFile(
       path.join(imagesDir, 'image-123.png'),
-      Buffer.from('fake image data')
+      Buffer.from('fake image data'),
     );
   });
 
@@ -134,7 +172,7 @@ Copied images to: ${outputImagesDir}`;
 
   it('should fail with invalid language', async () => {
     const result = await runCommand(
-      `node dist/index.js translate -i ${inputFile} -o ${outputFile} -l invalid`
+      `node dist/index.js translate -i ${inputFile} -o ${outputFile} -l invalid`,
     );
 
     expect(result.stderr).toContain('Unsupported language');
@@ -149,11 +187,11 @@ Copied images to: ${outputImagesDir}`;
 
       // This test will be skipped if no API key is available
       const result = await runCommand(
-        `node dist/index.js translate -i ${inputFile} -o ${outputFile} -l french`
+        `node dist/index.js translate -i ${inputFile} -o ${outputFile} -l french`,
       );
 
       expect(result.stdout).toContain(
-        'Translation to french completed successfully'
+        'Translation to french completed successfully',
       );
       expect(result.stdout).toContain(`Copied images to: ${outputImagesDir}`);
 
@@ -161,6 +199,6 @@ Copied images to: ${outputImagesDir}`;
       // So we'll just verify the test ran successfully based on the stdout
       expect(result.stdout).toBeTruthy();
     },
-    60000 // Set longer timeout for API call
+    60000, // Set longer timeout for API call
   );
 });

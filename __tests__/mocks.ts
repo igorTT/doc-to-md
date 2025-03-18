@@ -35,6 +35,18 @@ export const mockMistral = {
   },
 };
 
+// Mock tiktoken encoding
+export const mockTiktoken = {
+  encode: jest.fn().mockReturnValue([1, 2, 3, 4, 5]), // Mock token array
+  free: jest.fn(),
+};
+
+// Mock tiktoken module
+export const mockTiktokenModule = {
+  get_encoding: jest.fn().mockReturnValue(mockTiktoken),
+  TiktokenEncoding: {},
+};
+
 // Mock file stats
 export const createMockFileStats = (isFile = true, isDirectory = false) => ({
   isFile: jest.fn().mockReturnValue(isFile),
@@ -53,6 +65,9 @@ export const setupMocks = () => {
   jest.mock('@mistralai/mistralai', () => ({
     Mistral: jest.fn().mockImplementation(() => mockMistral),
   }));
+
+  // Setup tiktoken mock
+  jest.mock('tiktoken', () => mockTiktokenModule);
 
   // Setup path mocks
   jest.mock('path', () => ({

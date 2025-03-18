@@ -1,3 +1,29 @@
+/**
+ * Test Suite: index.test.ts
+ * ========================
+ *
+ * Purpose:
+ * This test suite validates the command-line interface setup and command handling
+ * of the application, ensuring proper configuration of commands, options, and actions.
+ *
+ * Key Components Tested:
+ * - CLI configuration with Commander
+ * - Command registration and option parsing
+ * - Integration with processFiles and translateFiles functions
+ * - Error handling and help text
+ *
+ * Test Groups:
+ * 1. CLI setup - Tests for proper initialization of the Commander instance
+ * 2. Command registration - Tests for correct command configuration
+ * 3. Option handling - Tests for required and optional parameters
+ * 4. Action handling - Tests for command execution and error handling
+ *
+ * Environment Setup:
+ * - Commander is fully mocked to test command configuration without actual execution
+ * - Process environment is controlled to test different execution contexts
+ * - Command handlers (processFiles, translateFiles) are mocked to verify proper integration
+ */
+
 import { Command } from 'commander';
 import { processFiles } from '../../src/processFiles';
 import { translateFiles } from '../../src/translateFiles';

@@ -1,3 +1,41 @@
+/**
+ * Integration Test Suite: Mistral OCR
+ * ==================================
+ *
+ * Purpose:
+ * These tests validate the integration between the application and Mistral's OCR
+ * service for processing PDF documents and converting them to markdown.
+ *
+ * Key Components Tested:
+ * - processFiles function for handling document conversion
+ * - MistralService integration for OCR processing
+ * - File system operations for handling input/output files
+ * - Error handling and reporting
+ *
+ * Test Groups:
+ * 1. Basic processing - Tests for successful conversion of PDF to markdown
+ * 2. Input validation - Tests for file existence and type validation
+ * 3. Error handling - Tests for graceful handling of API errors
+ * 4. Image extraction - Tests for proper handling of images from documents
+ *
+ * Testing Approach:
+ * - Tests simulate the full PDF processing pipeline with mocked API responses
+ * - File system operations are controlled to verify correct document processing
+ * - Focus on end-to-end scenarios rather than isolated component behavior
+ *
+ * Key Scenarios Tested:
+ * 1. Single file processing - Testing conversion of individual PDF documents
+ * 2. Directory processing - Testing batch processing of multiple documents
+ * 3. Error handling - Testing recovery from API failures and invalid inputs
+ * 4. Image extraction - Testing proper handling of embedded images in PDFs
+ * 5. Markdown formatting - Testing correct formatting of output markdown
+ *
+ * Setup/Teardown:
+ * - MistralService is mocked while preserving its integration behavior
+ * - Test files are created in memory and cleaned up after tests complete
+ * - Image handling is simulated with base64 mock data
+ */
+
 import fs from 'fs-extra';
 import path from 'path';
 import { MistralService } from '../../src/services/mistralService';
@@ -51,7 +89,7 @@ describe('Mistral OCR Integration Tests', () => {
     const mockProcessFile = jest
       .fn()
       .mockResolvedValue(
-        '# Extracted Text\n\nThis is text extracted from the PDF using OCR.'
+        '# Extracted Text\n\nThis is text extracted from the PDF using OCR.',
       );
     (MistralService.prototype.processFile as jest.Mock) = mockProcessFile;
     (MistralService.prototype.isFileSupported as jest.Mock) = jest
@@ -75,7 +113,7 @@ describe('Mistral OCR Integration Tests', () => {
 
     // Mock fs.readFile to return test data
     (fs.readFile as unknown as jest.Mock).mockResolvedValue(
-      Buffer.from('test-pdf-data')
+      Buffer.from('test-pdf-data'),
     );
   });
 
@@ -120,13 +158,13 @@ describe('Mistral OCR Integration Tests', () => {
     // Check that the MistralService is called with the correct parameters
     expect(MistralService.prototype.processFile).toHaveBeenCalledWith(
       inputFile,
-      imagesDir
+      imagesDir,
     );
 
     expect(fs.writeFile).toHaveBeenCalledWith(
       outputFile,
       '# Extracted Text\n\nThis is text extracted from the PDF using OCR.',
-      'utf-8'
+      'utf-8',
     );
   });
 
@@ -139,7 +177,7 @@ describe('Mistral OCR Integration Tests', () => {
       processFiles({
         input: inputFile,
         output: outputFile,
-      })
+      }),
     ).rejects.toThrow(`Input file does not exist: ${inputFile}`);
   });
 
@@ -155,7 +193,7 @@ describe('Mistral OCR Integration Tests', () => {
       processFiles({
         input: testDir,
         output: outputFile,
-      })
+      }),
     ).rejects.toThrow(`Input must be a file, not a directory: ${testDir}`);
   });
 
@@ -163,7 +201,7 @@ describe('Mistral OCR Integration Tests', () => {
     // Arrange
     const mockError = new Error('API error');
     (MistralService.prototype.processFile as jest.Mock).mockRejectedValueOnce(
-      mockError
+      mockError,
     );
 
     // Act & Assert
@@ -171,7 +209,7 @@ describe('Mistral OCR Integration Tests', () => {
       processFiles({
         input: inputFile,
         output: outputFile,
-      })
+      }),
     ).rejects.toThrow(`Failed to process PDF ${inputFile}: API error`);
   });
 });

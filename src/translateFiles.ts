@@ -1,6 +1,8 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { MistralService } from './services/mistralService';
+import { TokenCountService } from './services/tokenCountService';
+import readline from 'readline';
 
 // Define the options interface for translation
 export interface TranslateOptions {
@@ -11,6 +13,27 @@ export interface TranslateOptions {
 
 // Supported languages
 export const SUPPORTED_LANGUAGES = ['french', 'german', 'spanish', 'russian'];
+
+/**
+ * Create a readline interface to prompt the user for confirmation
+ *
+ * @param question The question to ask the user
+ * @returns Promise resolving to true if user confirms, false otherwise
+ */
+async function askForConfirmation(question: string): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise<boolean>((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      const normalized = answer.trim().toLowerCase();
+      resolve(normalized === 'y' || normalized === 'yes');
+    });
+  });
+}
 
 /**
  * Translate a markdown file to the specified language using Mistral AI
@@ -47,12 +70,40 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
     // Read the markdown file
     const markdownContent = await fs.readFile(input, 'utf-8');
 
+    // Count tokens in the file
+    const tokenCountService = new TokenCountService();
+    const tokenCount = tokenCountService.countTokens(markdownContent);
+
+    // Calculate estimated cost (using Mistral Large rate as an example)
+    // Mistral Large rate is approximately $8 per million tokens (or $0.008 per 1000 tokens)
+    const estimatedCost = tokenCountService.estimateCost(tokenCount, 0.008);
+
+    console.log(`File token count: ${tokenCount}`);
+    console.log(`Estimated cost: $${estimatedCost.toFixed(4)}`);
+
+    // Always ask for user confirmation before proceeding with translation
+    const userConfirmed = await askForConfirmation(
+      `⚠️ WARNING: This translation may cost approximately $${estimatedCost.toFixed(
+        4,
+      )}. Do you want to proceed? (y/n): `,
+    );
+
+    if (!userConfirmed) {
+      console.log('Translation canceled by user.');
+      return;
+    }
+
     // Use Mistral API to translate the content
     const mistralService = new MistralService();
     const translatedContent = await mistralService.translateContent(
       markdownContent,
       language
     );
+
+    // Count tokens in the translated content
+    const translatedTokenCount =
+      tokenCountService.countTokens(translatedContent);
+    console.log(`Translated file token count: ${translatedTokenCount}`);
 
     // Ensure output directory exists
     await fs.ensureDir(path.dirname(output));

@@ -1,5 +1,32 @@
+/**
+ * Test Suite: processFiles.test.ts
+ * ================================
+ *
+ * Purpose:
+ * This test suite validates the core PDF processing functionality that converts
+ * PDF documents to markdown using the Mistral OCR service.
+ *
+ * Key Components Tested:
+ * - processFiles function
+ * - MistralService integration for OCR processing
+ * - File system operations for reading PDFs and writing markdown
+ * - TokenCountService for estimating processing costs
+ *
+ * Test Groups:
+ * 1. Basic processing - Tests for successful PDF to markdown conversion
+ * 2. Error handling - Tests for input validation and API error scenarios
+ * 3. Options handling - Tests for directory output, recursive processing, and other options
+ * 4. File types validation - Tests for supported and unsupported file types
+ *
+ * Environment Setup:
+ * - MistralService is mocked to simulate API responses without actual API calls
+ * - File system operations are mocked to test without actual file I/O
+ * - Various PDF input scenarios are simulated with mock data
+ */
+
 import { processFiles } from '../../src/processFiles';
 import { MistralService } from '../../src/services/mistralService';
+import { TokenCountService } from '../../src/services/tokenCountService';
 
 // Mock dotenv
 jest.mock('dotenv', () => ({
@@ -32,22 +59,41 @@ jest.mock('path', () => ({
 }));
 
 jest.mock('../../src/services/mistralService');
+jest.mock('../../src/services/tokenCountService');
 
 // Import mocked modules
 import fs from 'fs-extra';
 import path from 'path';
 
 describe('processFiles', () => {
+  // Mock MistralService
+  const mockProcessFile = jest.fn();
+  // Mock TokenCountService
+  const mockCountTokens = jest.fn();
+  const mockEstimateCost = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Mock MistralService
-    (MistralService.prototype.processFile as jest.Mock).mockResolvedValue(
-      'Processed content'
+    (MistralService as jest.Mock).mockImplementation(() => ({
+      processFile: mockProcessFile,
+      isFileSupported: jest.fn().mockReturnValue(true),
+    }));
+
+    // Mock TokenCountService
+    (TokenCountService as jest.Mock).mockImplementation(() => ({
+      countTokens: mockCountTokens,
+      estimateCost: mockEstimateCost,
+    }));
+
+    mockProcessFile.mockResolvedValue(
+      '# OCR Result\n\nThis is the extracted text from the PDF.',
     );
-    (MistralService.prototype.isFileSupported as jest.Mock).mockReturnValue(
-      true
-    );
+
+    // Setup token count mocks
+    mockCountTokens.mockReturnValue(150);
+    mockEstimateCost.mockReturnValue(0.0012);
   });
 
   it('should process a single PDF file', async () => {
@@ -67,23 +113,23 @@ describe('processFiles', () => {
     // Check that the images directory is created
     expect(path.basename).toHaveBeenCalledWith(
       options.input,
-      path.extname(options.input)
+      path.extname(options.input),
     );
     expect(path.dirname).toHaveBeenCalledWith(options.output);
     expect(path.join).toHaveBeenCalledWith('/test', 'input-images');
     expect(fs.ensureDir).toHaveBeenCalledWith('/test/input-images');
 
-    // Check that the MistralService is called with the correct parameters
-    expect(MistralService.prototype.processFile).toHaveBeenCalledWith(
+    // Check that MistralService.processFile is called
+    expect(mockProcessFile).toHaveBeenCalledWith(
       options.input,
-      '/test/input-images'
+      '/test/input-images',
     );
 
     expect(fs.ensureDir).toHaveBeenCalledWith('/test');
     expect(fs.writeFile).toHaveBeenCalledWith(
       options.output,
-      'Processed content',
-      'utf-8'
+      '# OCR Result\n\nThis is the extracted text from the PDF.',
+      'utf-8',
     );
   });
 
@@ -98,9 +144,9 @@ describe('processFiles', () => {
 
     // Act & Assert
     await expect(processFiles(options)).rejects.toThrow(
-      `Input file does not exist: ${options.input}`
+      `Input file does not exist: ${options.input}`,
     );
-    expect(fs.readFile).not.toHaveBeenCalled();
+    expect(mockProcessFile).not.toHaveBeenCalled();
   });
 
   it('should throw an error if input is not a file', async () => {
@@ -119,7 +165,7 @@ describe('processFiles', () => {
 
     // Act & Assert
     await expect(processFiles(options)).rejects.toThrow(
-      `Input must be a file, not a directory: ${options.input}`
+      `Input must be a file, not a directory: ${options.input}`,
     );
   });
 
@@ -131,13 +177,35 @@ describe('processFiles', () => {
     };
 
     const mockError = new Error('API error');
-    (MistralService.prototype.processFile as jest.Mock).mockRejectedValueOnce(
-      mockError
-    );
+    mockProcessFile.mockRejectedValueOnce(mockError);
 
     // Act & Assert
     await expect(processFiles(options)).rejects.toThrow(
-      `Failed to process PDF ${options.input}: API error`
+      `Failed to process PDF ${options.input}: API error`,
     );
+  });
+
+  it('should count tokens in the OCR result and estimate cost', async () => {
+    // Test configuration
+    const options = {
+      input: 'input.pdf',
+      output: 'output.md',
+    };
+
+    // Run the function
+    await processFiles(options);
+
+    // Check if TokenCountService was instantiated
+    expect(TokenCountService).toHaveBeenCalledTimes(1);
+
+    // Check if countTokens was called with OCR result
+    expect(mockCountTokens).toHaveBeenCalledTimes(1);
+    expect(mockCountTokens).toHaveBeenCalledWith(
+      '# OCR Result\n\nThis is the extracted text from the PDF.',
+    );
+
+    // Check if estimateCost was called with the correct token count
+    expect(mockEstimateCost).toHaveBeenCalledTimes(1);
+    expect(mockEstimateCost).toHaveBeenCalledWith(150, 0.008);
   });
 });

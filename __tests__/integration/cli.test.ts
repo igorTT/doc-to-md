@@ -1,3 +1,41 @@
+/**
+ * Integration Test Suite: CLI
+ * ===========================
+ *
+ * Purpose:
+ * These tests validate the end-to-end functionality of the command-line interface.
+ * They ensure that CLI commands correctly interact with the underlying application
+ * and produce expected outputs.
+ *
+ * Key Components Tested:
+ * - CLI command parsing and execution
+ * - Command options and argument handling
+ * - Error display and help text formatting
+ * - Integration with the application processing logic
+ *
+ * Test Groups:
+ * 1. Help commands - Tests for displaying usage information
+ * 2. Process command - Tests for PDF processing command
+ * 3. Error handling - Tests for invalid arguments and missing options
+ * 4. Command execution - Tests for actual command execution when API is available
+ *
+ * Testing Approach:
+ * - Tests simulate real CLI commands through mocked child_process execution
+ * - File system interactions are real but confined to a test directory that is cleaned up
+ * - Tests verify command output (stdout/stderr) and resulting file contents
+ *
+ * Key Scenarios Tested:
+ * 1. Basic command execution with required parameters
+ * 2. Handling of various input file formats
+ * 3. Command options and flags behavior
+ * 4. Error conditions and error messages
+ * 5. Output file generation and formatting
+ *
+ * Setup/Teardown:
+ * - Test directory and files are created before tests run
+ * - All test artifacts are cleaned up after tests complete
+ */
+
 import { exec } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
@@ -12,7 +50,7 @@ jest.mock('child_process', () => ({
 
 // Helper to run CLI commands
 async function runCommand(
-  command: string
+  command: string,
 ): Promise<{ stdout: string; stderr: string }> {
   try {
     return await execAsync(command);
@@ -105,7 +143,7 @@ Options:
     // Assert
     expect(result.stdout).toContain('Usage: doc-to-md [options] [command]');
     expect(result.stdout).toContain(
-      'CLI to process PDF files using Mistral OCR'
+      'CLI to process PDF files using Mistral OCR',
     );
     expect(result.stdout).toContain('process [options]');
   }, 10000); // Increase timeout to 10 seconds
@@ -136,12 +174,12 @@ Options:
 
     // Act
     const { stdout } = await runCommand(
-      `node dist/index.js process --input ${inputFile} --output ${outputFile}`
+      `node dist/index.js process --input ${inputFile} --output ${outputFile}`,
     );
 
     // Assert
     expect(stdout).toContain(
-      'PDF processing with Mistral OCR completed successfully'
+      'PDF processing with Mistral OCR completed successfully',
     );
 
     // Check if output file exists
