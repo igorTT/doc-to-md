@@ -297,6 +297,7 @@ Your translation should read naturally in ${targetLanguage} while accurately con
           { role: 'system', content: systemPrompt },
           { role: 'user', content },
         ],
+        temperature: 0.2, // Add low temperature for consistent translation
       });
       console.log('Response:', response);
 
