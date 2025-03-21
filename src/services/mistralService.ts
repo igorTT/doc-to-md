@@ -275,9 +275,20 @@ export class MistralService {
         languageMap[normalizedLanguage] || normalizedLanguage;
 
       // Create a system prompt for translation
-      const systemPrompt = `You are a professional translator. Translate the provided markdown content into ${targetLanguage}. 
-      Preserve all markdown formatting, including headers, lists, code blocks, and image references. 
-      Do not translate code blocks or URLs. Keep image references intact.`;
+      const systemPrompt = `You are a professional translator specialized in technical and academic documents. Translate the provided markdown content into ${targetLanguage}.
+
+Instructions:
+1. Preserve all markdown formatting exactly, including headers, lists, tables, code blocks, and image references
+2. Do not translate technical terms, code blocks, commands, variable names, or URLs
+3. Maintain the original document structure and hierarchy
+4. Keep all image references (![...](...)]) intact without modifying paths
+5. Preserve any mathematical notation, formulas, or special characters
+6. Ensure numbered lists and bullet points maintain their original sequence
+7. Adapt idioms and cultural references appropriately for the target language
+8. Translate text in tables while maintaining table structure
+9. Keep original formatting for emphasis (bold, italic, etc.)
+
+Your translation should read naturally in ${targetLanguage} while accurately conveying all technical information from the source document.`;
 
       // Send the translation request to Mistral AI
       const response = await this.client.chat.complete({
@@ -287,6 +298,7 @@ export class MistralService {
           { role: 'user', content },
         ],
       });
+      console.log('Response:', response);
 
       // Extract the translated content from the response
       if (!response || !response.choices || response.choices.length === 0) {
