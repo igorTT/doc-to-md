@@ -107,7 +107,7 @@ describe('MistralService', () => {
       (filePath: string) => {
         const parts = filePath.split('.');
         return parts.length > 1 ? `.${parts[parts.length - 1]}` : '';
-      },
+      }
     );
 
     (path.basename as unknown as jest.Mock).mockReturnValue('test-file.jpg');
@@ -127,12 +127,12 @@ describe('MistralService', () => {
           chat: {
             complete: mockChatComplete,
           },
-        } as any),
+        } as any)
     );
 
     // Mock fs.readFile
     (fs.readFile as unknown as jest.Mock).mockResolvedValue(
-      Buffer.from('test-file-data'),
+      Buffer.from('test-file-data')
     );
   });
 
@@ -157,7 +157,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       expect(() => new MistralService()).toThrow(
-        'MISTRAL_API_KEY environment variable is not set',
+        'MISTRAL_API_KEY environment variable is not set'
       );
     });
   });
@@ -195,7 +195,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       await expect(service.processFile(filePath, imagesDir)).rejects.toThrow(
-        'Only PDF files are supported. Received: .txt',
+        'Only PDF files are supported. Received: .txt'
       );
     });
 
@@ -208,7 +208,7 @@ describe('MistralService', () => {
       (path.extname as unknown as jest.Mock).mockReturnValue('.pdf');
       (path.dirname as unknown as jest.Mock).mockReturnValue('/path/to');
       (path.join as unknown as jest.Mock).mockImplementation((...args) =>
-        args.join('/'),
+        args.join('/')
       );
       (path.basename as unknown as jest.Mock).mockImplementation((path) => {
         if (path === imagesDir) return 'images';
@@ -228,7 +228,7 @@ describe('MistralService', () => {
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nThis is a test document with an image: ![image-1](images/image-abc123.png)',
+        '# Test Document\n\nThis is a test document with an image: ![image-1](images/image-abc123.png)'
       );
       expect(mockFilesUpload).toHaveBeenCalledWith({
         file: {
@@ -252,7 +252,7 @@ describe('MistralService', () => {
       // Check that images are saved to files
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         '/path/to/images/image-abc123.png',
-        expect.any(Buffer),
+        expect.any(Buffer)
       );
     });
 
@@ -270,7 +270,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       await expect(service.processFile(filePath, imagesDir)).rejects.toThrow(
-        'Failed to process PDF with Mistral OCR API: API rate limit exceeded',
+        'Failed to process PDF with Mistral OCR API: API rate limit exceeded'
       );
     });
 
@@ -287,7 +287,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       await expect(service.processFile(filePath, imagesDir)).rejects.toThrow(
-        'Invalid OCR response from Mistral API',
+        'Invalid OCR response from Mistral API'
       );
     });
 
@@ -300,7 +300,7 @@ describe('MistralService', () => {
       (path.extname as unknown as jest.Mock).mockReturnValue('.pdf');
       (path.dirname as unknown as jest.Mock).mockReturnValue('/path/to');
       (path.join as unknown as jest.Mock).mockReturnValue(
-        '/path/to/test_mistral_ocr.md',
+        '/path/to/test_mistral_ocr.md'
       );
 
       // Mock fs.writeFileSync for saveMarkdownToFile
@@ -365,7 +365,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       await expect(service.retrieveFileDetails(fileId)).rejects.toThrow(
-        'Failed to retrieve PDF file details: File not found',
+        'Failed to retrieve PDF file details: File not found'
       );
     });
   });
@@ -408,7 +408,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       await expect(service.uploadFile(filePath)).rejects.toThrow(
-        'Failed to upload PDF file: Upload failed',
+        'Failed to upload PDF file: Upload failed'
       );
     });
   });
@@ -455,11 +455,11 @@ describe('MistralService', () => {
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nThis is a test with an image: ![image-1](images/image-abc123.png)',
+        '# Test Document\n\nThis is a test with an image: ![image-1](images/image-abc123.png)'
       );
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         '/path/to/images/image-abc123.png',
-        expect.any(Buffer),
+        expect.any(Buffer)
       );
     });
 
@@ -484,7 +484,7 @@ describe('MistralService', () => {
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nImage 1: ![image-1](images/image-abc123.png)\n\nImage 2: ![image-2](images/image-abc123.png)',
+        '# Test Document\n\nImage 1: ![image-1](images/image-abc123.png)\n\nImage 2: ![image-2](images/image-abc123.png)'
       );
       expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
     });
@@ -549,11 +549,11 @@ describe('MistralService', () => {
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nThis is a test with an image: ![image-1](images/image-abc123.png)',
+        '# Test Document\n\nThis is a test with an image: ![image-1](images/image-abc123.png)'
       );
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         '/path/to/images/image-abc123.png',
-        expect.any(Buffer),
+        expect.any(Buffer)
       );
     });
   });
@@ -595,11 +595,12 @@ describe('MistralService', () => {
           {
             role: 'system',
             content: expect.stringContaining(
-              'Translate the provided markdown content into French',
+              'Translate the provided markdown content into French'
             ),
           },
           { role: 'user', content },
         ],
+        temperature: 0.2,
       });
     });
 
@@ -631,11 +632,12 @@ describe('MistralService', () => {
           {
             role: 'system',
             content: expect.stringContaining(
-              'Translate the provided markdown content into German',
+              'Translate the provided markdown content into German'
             ),
           },
           { role: 'user', content },
         ],
+        temperature: 0.2,
       });
     });
 
@@ -667,11 +669,12 @@ describe('MistralService', () => {
           {
             role: 'system',
             content: expect.stringContaining(
-              'Translate the provided markdown content into Russian',
+              'Translate the provided markdown content into Russian'
             ),
           },
           { role: 'user', content },
         ],
+        temperature: 0.2,
       });
     });
 
@@ -686,7 +689,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       await expect(service.translateContent(content, language)).rejects.toThrow(
-        'Failed to translate content: API request failed',
+        'Failed to translate content: API request failed'
       );
     });
 
@@ -703,7 +706,7 @@ describe('MistralService', () => {
 
       // Act & Assert
       await expect(service.translateContent(content, language)).rejects.toThrow(
-        'Invalid response from Mistral API',
+        'Invalid response from Mistral API'
       );
     });
   });
