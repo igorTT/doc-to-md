@@ -245,6 +245,16 @@ yarn test:coverage
   - Test command-line interface and argument parsing
   - Some tests may be skipped if they require external services
 
+### Continuous Integration
+
+The project uses GitHub Actions for continuous integration:
+
+- Runs tests automatically on push to main branch and pull requests
+- Tests run on multiple Node.js versions (18.x and 20.x)
+- Generates and uploads test coverage reports
+
+You can view the test workflow in `.github/workflows/tests.yml`.
+
 ### Current Test Coverage
 
 The project maintains high test coverage:
