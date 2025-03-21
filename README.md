@@ -250,7 +250,7 @@ yarn test:coverage
 The project uses GitHub Actions for continuous integration:
 
 - Runs tests automatically on push to main branch and pull requests
-- Tests run on multiple Node.js versions (18.x and 20.x)
+- Tests run on Node.js 20.x
 - Generates and uploads test coverage reports
 
 You can view the test workflow in `.github/workflows/tests.yml`.
