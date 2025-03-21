@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import { logger } from './loggerService';
 
 // Load environment variables
 dotenv.config();
@@ -187,7 +188,7 @@ export class MistralService {
           `![${imgId}](${relativeImagePath})`
         );
       } catch (error) {
-        console.error(`Failed to save image ${imgId}:`, error);
+        logger.error(`Failed to save image ${imgId}:`, error);
       }
     }
 

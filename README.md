@@ -70,11 +70,41 @@ When translating, the tool provides token counts for both the input and translat
 ### Token Counting
 
 The tool now includes token counting functionality that:
+
 - Counts tokens in files being processed or translated
 - Provides an estimated cost based on current Mistral pricing
 - Gives visibility into the token usage of your operations
 
 This helps you understand and manage costs when using Mistral's API for OCR and translation.
+
+### Logger Service
+
+The tool includes a flexible logging system that:
+
+- Provides consistent log formatting across the application
+- Supports different log levels (DEBUG, INFO, WARN, ERROR, NONE)
+- Allows filtering logs based on minimum log level
+- Implemented as a singleton to ensure a single logging instance
+
+Log levels in ascending order of severity:
+
+- DEBUG: Detailed information, typically for debugging purposes
+- INFO: General information about application progress (default)
+- WARN: Potential issues that don't prevent normal operation
+- ERROR: Errors that prevent normal operation
+- NONE: Disables all logging
+
+You can customize the log level in your code by accessing the logger:
+
+```typescript
+import { logger, LoggerService } from './services/loggerService';
+
+// Set to DEBUG level for more verbose output
+logger.setLogLevel(LoggerService.LogLevel.DEBUG);
+
+// Set to ERROR level to show only errors
+logger.setLogLevel(LoggerService.LogLevel.ERROR);
+```
 
 ### Test Data
 
@@ -223,6 +253,7 @@ The project maintains high test coverage:
 - **index.ts**: 100% statement coverage
 - **processFiles.ts**: 100% statement coverage
 - **mistralService.ts**: 93% statement coverage
+- **loggerService.ts**: 100% statement coverage
 
 ## License
 
