@@ -1,4 +1,5 @@
 import { get_encoding, TiktokenEncoding } from 'tiktoken';
+import { logger } from './loggerService';
 
 /**
  * Service for counting tokens in text content
@@ -15,7 +16,7 @@ export class TokenCountService {
    */
   public countTokens(
     text: string,
-    encodingName: TiktokenEncoding = 'cl100k_base',
+    encodingName: TiktokenEncoding = 'cl100k_base'
   ): number {
     try {
       const encoding = get_encoding(encodingName);
@@ -27,15 +28,15 @@ export class TokenCountService {
 
       return tokenCount;
     } catch (error) {
-      console.error(
+      logger.error(
         `Error counting tokens: ${
           error instanceof Error ? error.message : String(error)
-        }`,
+        }`
       );
       throw new Error(
         `Failed to count tokens: ${
           error instanceof Error ? error.message : String(error)
-        }`,
+        }`
       );
     }
   }
@@ -49,7 +50,7 @@ export class TokenCountService {
    */
   public estimateCost(
     tokenCount: number,
-    ratePerThousandTokens: number,
+    ratePerThousandTokens: number
   ): number {
     return (tokenCount / 1000) * ratePerThousandTokens;
   }

@@ -5,6 +5,7 @@ import { processFiles } from './processFiles';
 import { translateFiles, SUPPORTED_LANGUAGES } from './translateFiles';
 import dotenv from 'dotenv';
 import path from 'path';
+import { logger } from './services/loggerService';
 
 // Load environment variables
 dotenv.config();
@@ -40,9 +41,9 @@ program
         output: options.output,
       });
 
-      console.log('PDF processing with Mistral OCR completed successfully!');
+      logger.info('PDF processing with Mistral OCR completed successfully!');
     } catch (error) {
-      console.error(
+      logger.error(
         'Error processing PDF:',
         error instanceof Error ? error.message : error
       );
@@ -82,9 +83,9 @@ program
         language: options.language,
       });
 
-      console.log(`Translation to ${options.language} completed successfully!`);
+      logger.info(`Translation to ${options.language} completed successfully!`);
     } catch (error) {
-      console.error(
+      logger.error(
         'Error translating file:',
         error instanceof Error ? error.message : error
       );

@@ -99,7 +99,7 @@ describe('CLI', () => {
     // Assert
     expect(commandInstance.name).toHaveBeenCalledWith('doc-to-md');
     expect(commandInstance.description).toHaveBeenCalledWith(
-      'CLI to process PDF files using Mistral OCR',
+      'CLI to process PDF files using Mistral OCR'
     );
     expect(commandInstance.version).toHaveBeenCalledWith('1.0.0');
   });
@@ -139,8 +139,8 @@ describe('CLI', () => {
       // Assert
       expect(mockProcessExit).toHaveBeenCalledWith(1);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        'Error processing PDF:',
-        'Test error',
+        '[ERROR] Error processing PDF:',
+        'Test error'
       );
     });
 
@@ -158,8 +158,8 @@ describe('CLI', () => {
       // Assert
       expect(mockProcessExit).toHaveBeenCalledWith(1);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        'Error processing PDF:',
-        'MISTRAL_API_KEY is not set in environment variables. Create a .env file with your API key.',
+        '[ERROR] Error processing PDF:',
+        'MISTRAL_API_KEY is not set in environment variables. Create a .env file with your API key.'
       );
     });
   });
@@ -202,8 +202,8 @@ describe('CLI', () => {
       // Assert
       expect(mockProcessExit).toHaveBeenCalledWith(1);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        'Error translating file:',
-        'Test error',
+        '[ERROR] Error translating file:',
+        'Test error'
       );
     });
 
@@ -222,8 +222,8 @@ describe('CLI', () => {
       // Assert
       expect(mockProcessExit).toHaveBeenCalledWith(1);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        'Error translating file:',
-        'MISTRAL_API_KEY is not set in environment variables. Create a .env file with your API key.',
+        '[ERROR] Error translating file:',
+        'MISTRAL_API_KEY is not set in environment variables. Create a .env file with your API key.'
       );
     });
   });

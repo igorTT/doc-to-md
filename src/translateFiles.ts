@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { MistralService } from './services/mistralService';
 import { TokenCountService } from './services/tokenCountService';
+import { logger } from './services/loggerService';
 import readline from 'readline';
 
 // Define the options interface for translation
@@ -65,7 +66,7 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
   }
 
   try {
-    console.log(`Translating markdown file to ${language}: ${input}`);
+    logger.info(`Translating markdown file to ${language}: ${input}`);
 
     // Read the markdown file
     const markdownContent = await fs.readFile(input, 'utf-8');
@@ -78,8 +79,8 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
     // Mistral Large rate is approximately $8 per million tokens (or $0.008 per 1000 tokens)
     const estimatedCost = tokenCountService.estimateCost(tokenCount, 0.008);
 
-    console.log(`File token count: ${tokenCount}`);
-    console.log(`Estimated cost: $${estimatedCost.toFixed(4)}`);
+    logger.info(`File token count: ${tokenCount}`);
+    logger.info(`Estimated cost: $${estimatedCost.toFixed(4)}`);
 
     // Always ask for user confirmation before proceeding with translation
     const userConfirmed = await askForConfirmation(
@@ -89,7 +90,7 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
     );
 
     if (!userConfirmed) {
-      console.log('Translation canceled by user.');
+      logger.info('Translation canceled by user.');
       return;
     }
 
@@ -103,7 +104,7 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
     // Count tokens in the translated content
     const translatedTokenCount =
       tokenCountService.countTokens(translatedContent);
-    console.log(`Translated file token count: ${translatedTokenCount}`);
+    logger.info(`Translated file token count: ${translatedTokenCount}`);
 
     // Ensure output directory exists
 
@@ -125,7 +126,7 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
 
       // Copy the images directory to the output location
       await fs.copy(imagesDir, outputImagesDir);
-      console.log(`Copied images to: ${outputImagesDir}`);
+      logger.info(`Copied images to: ${outputImagesDir}`);
 
       // Update image paths in the translated content if needed
       // This is only necessary if the output filename is different from the input filename
@@ -138,7 +139,7 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
       }
     }
 
-    console.log(`Translation completed successfully: ${output}`);
+    logger.info(`Translation completed successfully: ${output}`);
   } catch (error) {
     throw new Error(
       `Failed to translate file ${input}: ${

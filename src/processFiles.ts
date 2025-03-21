@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { MistralService } from './services/mistralService';
 import { TokenCountService } from './services/tokenCountService';
+import { logger } from './services/loggerService';
 
 // Define the options interface for PDF processing
 interface ProcessOptions {
@@ -31,7 +32,7 @@ export async function processFiles(options: ProcessOptions): Promise<void> {
   }
 
   try {
-    console.log(`Processing PDF file: ${input}`);
+    logger.info(`Processing PDF file: ${input}`);
 
     // Create images folder based on input file name (without extension)
     const inputFileName = path.basename(input, path.extname(input));
@@ -52,8 +53,8 @@ export async function processFiles(options: ProcessOptions): Promise<void> {
     // Calculate estimated cost (using Mistral Large rate as an example)
     const estimatedCost = tokenCountService.estimateCost(tokenCount, 0.008);
 
-    console.log(`OCR result token count: ${tokenCount}`);
-    console.log(`Estimated cost for OCR: $${estimatedCost.toFixed(4)}`);
+    logger.info(`OCR result token count: ${tokenCount}`);
+    logger.info(`Estimated cost for OCR: $${estimatedCost.toFixed(4)}`);
 
     // Ensure output directory exists
     await fs.ensureDir(path.dirname(output));
@@ -61,8 +62,8 @@ export async function processFiles(options: ProcessOptions): Promise<void> {
     // Write response to output file
     await fs.writeFile(output, response, 'utf-8');
 
-    console.log(`PDF processed successfully: ${output}`);
-    console.log(`Images saved to: ${imagesDir}`);
+    logger.info(`PDF processed successfully: ${output}`);
+    logger.info(`Images saved to: ${imagesDir}`);
   } catch (error) {
     throw new Error(
       `Failed to process PDF ${input}: ${
