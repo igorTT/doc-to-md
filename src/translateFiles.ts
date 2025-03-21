@@ -84,8 +84,8 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
     // Always ask for user confirmation before proceeding with translation
     const userConfirmed = await askForConfirmation(
       `⚠️ WARNING: This translation may cost approximately $${estimatedCost.toFixed(
-        4,
-      )}. Do you want to proceed? (y/n): `,
+        4
+      )}. Do you want to proceed? (y/n): `
     );
 
     if (!userConfirmed) {
