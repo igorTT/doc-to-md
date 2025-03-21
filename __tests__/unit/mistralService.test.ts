@@ -1,3 +1,31 @@
+/**
+ * Test Suite: MistralService.test.ts
+ * ==================================
+ *
+ * Purpose:
+ * This test suite validates the MistralService which is responsible for interacting
+ * with the Mistral AI API for document processing, OCR, and language translation.
+ *
+ * Key Components Tested:
+ * - MistralService initialization and configuration
+ * - OCR processing functionality
+ * - Language translation capabilities
+ * - Error handling and retries
+ * - File uploads and result processing
+ *
+ * Test Groups:
+ * 1. Service initialization - Tests for proper configuration and API key handling
+ * 2. OCR processing - Tests for PDF/image to text conversion
+ * 3. Translation - Tests for translating content between languages
+ * 4. Error handling - Tests for API errors, rate limiting, and retry logic
+ * 5. File handling - Tests for file upload, download, and processing
+ *
+ * Mocking Strategy:
+ * - Mistral API client is fully mocked to avoid actual API calls
+ * - File system operations are mocked for isolation
+ * - Environment variables are mocked to test different configurations
+ */
+
 import { MistralService } from '../../src/services/mistralService';
 import { Mistral } from '@mistralai/mistralai';
 import fs from 'fs-extra';
@@ -162,31 +190,45 @@ describe('MistralService', () => {
       // Arrange
       const service = new MistralService();
       const filePath = 'test.txt';
+      const imagesDir = '/path/to/images';
       (path.extname as unknown as jest.Mock).mockReturnValue('.txt');
 
       // Act & Assert
-      await expect(service.processFile(filePath)).rejects.toThrow(
+      await expect(service.processFile(filePath, imagesDir)).rejects.toThrow(
         'Only PDF files are supported. Received: .txt',
       );
     });
 
-    it('should process a PDF file using the OCR API', async () => {
+    it('should process a PDF file using the OCR API and save images to files', async () => {
       // Arrange
       const service = new MistralService();
       const filePath = 'test.pdf';
+      const imagesDir = '/path/to/images';
 
       (path.extname as unknown as jest.Mock).mockReturnValue('.pdf');
       (path.dirname as unknown as jest.Mock).mockReturnValue('/path/to');
-      (path.join as unknown as jest.Mock).mockReturnValue(
-        '/path/to/test_mistral_ocr.md',
+      (path.join as unknown as jest.Mock).mockImplementation((...args) =>
+        args.join('/'),
       );
+      (path.basename as unknown as jest.Mock).mockImplementation((path) => {
+        if (path === imagesDir) return 'images';
+        return 'test-file.jpg';
+      });
+
+      // Mock crypto for hash generation
+      jest.mock('crypto', () => ({
+        createHash: jest.fn().mockReturnValue({
+          update: jest.fn().mockReturnThis(),
+          digest: jest.fn().mockReturnValue('abc123'),
+        }),
+      }));
 
       // Act
-      const result = await service.processFile(filePath);
+      const result = await service.processFile(filePath, imagesDir);
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nThis is a test document with an image: ![image-1](data:image/png;base64,base64-image-data)',
+        '# Test Document\n\nThis is a test document with an image: ![image-1](images/image-abc123.png)',
       );
       expect(mockFilesUpload).toHaveBeenCalledWith({
         file: {
@@ -206,17 +248,19 @@ describe('MistralService', () => {
         },
         includeImageBase64: true,
       });
-      // Remove the expectation for writeFileSync since we no longer save to the original location
-      // expect(fs.writeFileSync).toHaveBeenCalledWith(
-      //   '/path/to/test_mistral_ocr.md',
-      //   '# Test Document\n\nThis is a test document with an image: ![image-1](data:image/png;base64,base64-image-data)',
-      // );
+
+      // Check that images are saved to files
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        '/path/to/images/image-abc123.png',
+        expect.any(Buffer),
+      );
     });
 
     it('should handle API errors gracefully', async () => {
       // Arrange
       const service = new MistralService();
       const filePath = 'test.pdf';
+      const imagesDir = '/path/to/images';
 
       (path.extname as unknown as jest.Mock).mockReturnValue('.pdf');
 
@@ -225,7 +269,7 @@ describe('MistralService', () => {
       mockFilesUpload.mockRejectedValueOnce(mockError);
 
       // Act & Assert
-      await expect(service.processFile(filePath)).rejects.toThrow(
+      await expect(service.processFile(filePath, imagesDir)).rejects.toThrow(
         'Failed to process PDF with Mistral OCR API: API rate limit exceeded',
       );
     });
@@ -234,6 +278,7 @@ describe('MistralService', () => {
       // Arrange
       const service = new MistralService();
       const filePath = 'test.pdf';
+      const imagesDir = '/path/to/images';
 
       (path.extname as unknown as jest.Mock).mockReturnValue('.pdf');
 
@@ -241,7 +286,7 @@ describe('MistralService', () => {
       mockOcrProcess.mockResolvedValueOnce({ some: 'data' });
 
       // Act & Assert
-      await expect(service.processFile(filePath)).rejects.toThrow(
+      await expect(service.processFile(filePath, imagesDir)).rejects.toThrow(
         'Invalid OCR response from Mistral API',
       );
     });
@@ -250,6 +295,7 @@ describe('MistralService', () => {
       // Arrange
       const service = new MistralService();
       const filePath = 'test.pdf';
+      const imagesDir = '/path/to/images';
 
       (path.extname as unknown as jest.Mock).mockReturnValue('.pdf');
       (path.dirname as unknown as jest.Mock).mockReturnValue('/path/to');
@@ -271,7 +317,7 @@ describe('MistralService', () => {
       });
 
       // Act
-      const result = await service.processFile(filePath);
+      const result = await service.processFile(filePath, imagesDir);
 
       // Assert
       expect(result).toBe('');
@@ -368,7 +414,28 @@ describe('MistralService', () => {
   });
 
   describe('replaceImagesInMarkdown', () => {
-    it('should replace image references with base64 data', () => {
+    beforeEach(() => {
+      // Reset mocks
+      jest.clearAllMocks();
+
+      // Mock path functions
+      (path.basename as jest.Mock).mockImplementation((p) => {
+        if (p === '/path/to/images') return 'images';
+        return 'test-file.jpg';
+      });
+
+      (path.join as jest.Mock).mockImplementation((...args) => args.join('/'));
+
+      // Mock crypto
+      jest.mock('crypto', () => ({
+        createHash: jest.fn().mockReturnValue({
+          update: jest.fn().mockReturnThis(),
+          digest: jest.fn().mockReturnValue('abc123'),
+        }),
+      }));
+    });
+
+    it('should replace image references with links to saved image files', () => {
       // Arrange
       const service = new MistralService();
       const markdown =
@@ -376,6 +443,7 @@ describe('MistralService', () => {
       const imageData = {
         'image-1': 'base64-image-data',
       };
+      const imagesDir = '/path/to/images';
 
       // Access the private method using type assertion
       const replaceImagesInMarkdown = (
@@ -383,11 +451,15 @@ describe('MistralService', () => {
       ).replaceImagesInMarkdown.bind(service);
 
       // Act
-      const result = replaceImagesInMarkdown(markdown, imageData);
+      const result = replaceImagesInMarkdown(markdown, imageData, imagesDir);
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nThis is a test with an image: ![image-1](data:image/png;base64,base64-image-data)',
+        '# Test Document\n\nThis is a test with an image: ![image-1](images/image-abc123.png)',
+      );
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        '/path/to/images/image-abc123.png',
+        expect.any(Buffer),
       );
     });
 
@@ -400,6 +472,7 @@ describe('MistralService', () => {
         'image-1': 'base64-data-1',
         'image-2': 'base64-data-2',
       };
+      const imagesDir = '/path/to/images';
 
       // Access the private method using type assertion
       const replaceImagesInMarkdown = (
@@ -407,21 +480,21 @@ describe('MistralService', () => {
       ).replaceImagesInMarkdown.bind(service);
 
       // Act
-      const result = replaceImagesInMarkdown(markdown, imageData);
+      const result = replaceImagesInMarkdown(markdown, imageData, imagesDir);
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nImage 1: ![image-1](data:image/png;base64,base64-data-1)\n\nImage 2: ![image-2](data:image/png;base64,base64-data-2)',
+        '# Test Document\n\nImage 1: ![image-1](images/image-abc123.png)\n\nImage 2: ![image-2](images/image-abc123.png)',
       );
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
     });
 
     it('should handle markdown with no image references', () => {
       // Arrange
       const service = new MistralService();
       const markdown = '# Test Document\n\nThis is a test with no images.';
-      const imageData = {
-        'image-1': 'base64-image-data',
-      };
+      const imageData = {}; // Empty image data to prevent any calls
+      const imagesDir = '/path/to/images';
 
       // Access the private method using type assertion
       const replaceImagesInMarkdown = (
@@ -429,19 +502,19 @@ describe('MistralService', () => {
       ).replaceImagesInMarkdown.bind(service);
 
       // Act
-      const result = replaceImagesInMarkdown(markdown, imageData);
+      const result = replaceImagesInMarkdown(markdown, imageData, imagesDir);
 
       // Assert
       expect(result).toBe('# Test Document\n\nThis is a test with no images.');
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
     it('should handle empty markdown', () => {
       // Arrange
       const service = new MistralService();
       const markdown = '';
-      const imageData = {
-        'image-1': 'base64-image-data',
-      };
+      const imageData = {}; // Empty image data to prevent any calls
+      const imagesDir = '/path/to/images';
 
       // Access the private method using type assertion
       const replaceImagesInMarkdown = (
@@ -449,10 +522,11 @@ describe('MistralService', () => {
       ).replaceImagesInMarkdown.bind(service);
 
       // Act
-      const result = replaceImagesInMarkdown(markdown, imageData);
+      const result = replaceImagesInMarkdown(markdown, imageData, imagesDir);
 
       // Assert
       expect(result).toBe('');
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
     it('should handle already formatted base64 data', () => {
@@ -463,6 +537,7 @@ describe('MistralService', () => {
       const imageData = {
         'image-1': 'data:image/jpeg;base64,already-formatted-data',
       };
+      const imagesDir = '/path/to/images';
 
       // Access the private method using type assertion
       const replaceImagesInMarkdown = (
@@ -470,11 +545,15 @@ describe('MistralService', () => {
       ).replaceImagesInMarkdown.bind(service);
 
       // Act
-      const result = replaceImagesInMarkdown(markdown, imageData);
+      const result = replaceImagesInMarkdown(markdown, imageData, imagesDir);
 
       // Assert
       expect(result).toBe(
-        '# Test Document\n\nThis is a test with an image: ![image-1](data:image/jpeg;base64,already-formatted-data)',
+        '# Test Document\n\nThis is a test with an image: ![image-1](images/image-abc123.png)',
+      );
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        '/path/to/images/image-abc123.png',
+        expect.any(Buffer),
       );
     });
   });

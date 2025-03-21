@@ -54,7 +54,7 @@ program
 program
   .command('translate')
   .description(
-    'Translate a markdown file to a different language using Mistral AI',
+    'Translate a markdown file to a different language using Mistral AI. Provides cost estimation and requires explicit user confirmation before proceeding with any translation.',
   )
   .requiredOption('-i, --input <path>', 'Path to input markdown file')
   .requiredOption(
