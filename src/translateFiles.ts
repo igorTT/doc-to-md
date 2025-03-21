@@ -36,8 +36,8 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
   if (!SUPPORTED_LANGUAGES.includes(language.toLowerCase())) {
     throw new Error(
       `Unsupported language: ${language}. Supported languages are: ${SUPPORTED_LANGUAGES.join(
-        ', ',
-      )}`,
+        ', '
+      )}`
     );
   }
 
@@ -51,11 +51,13 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
     const mistralService = new MistralService();
     const translatedContent = await mistralService.translateContent(
       markdownContent,
-      language,
+      language
     );
 
     // Ensure output directory exists
-    await fs.ensureDir(path.dirname(output));
+
+    const outputDir = path.dirname(output);
+    const result = await fs.ensureDir(outputDir);
 
     // Write translated content to output file
     await fs.writeFile(output, translatedContent, 'utf-8');
@@ -65,7 +67,7 @@ export async function translateFiles(options: TranslateOptions): Promise<void> {
     throw new Error(
       `Failed to translate file ${input}: ${
         error instanceof Error ? error.message : String(error)
-      }`,
+      }`
     );
   }
 }
